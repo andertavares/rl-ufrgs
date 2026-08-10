@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ViT — Índice dos Slides</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f8f9fb; --bg2: #ffffff; --bg3: #f0f2f6;
+      --border: #c7d0e0; --border2: #d1d9e8;
+      --text: #0f1724; --text-muted: #3d4f6e; --text-dim: #6b7fa3;
+      --teal: #0d6e6e; --blue: #1d4ed8; --cyan: #0e7490;
+      --green: #166534; --grad1: linear-gradient(135deg, #0d6e6e, #1d4ed8);
+    }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 3rem 1.5rem;
+    }
+    .hero { text-align: center; margin-bottom: 3rem; }
+    .badge {
+      display: inline-block;
+      padding: 0.3rem 1rem;
+      border-radius: 999px;
+      background: rgba(13,110,110,0.08);
+      border: 1px solid rgba(13,110,110,0.25);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 1.2rem;
+    }
+    h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      background: var(--grad1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.75rem;
+    }
+    .hero-sub { color: var(--text-muted); font-size: 1.05rem; max-width: 580px; margin: 0 auto; line-height: 1.6; }
+
+    .blocks { display: flex; flex-direction: column; gap: 2rem; max-width: 900px; width: 100%; }
+    .block-section { }
+    .block-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--teal);
+      margin-bottom: 1rem;
+      padding-left: 0.5rem;
+      border-left: 3px solid var(--teal);
+    }
+    .slides-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+    .slide-link {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      padding: 1.1rem 1.25rem;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 14px;
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.2s;
+      box-shadow: 0 1px 4px rgba(15,23,36,0.07);
+    }
+    .slide-link:hover {
+      border-color: var(--teal);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(13,110,110,0.12);
+    }
+    .sl-num { font-family: 'Fira Code', monospace; font-size: 0.7rem; color: var(--text-dim); }
+    .sl-icon { font-size: 1.5rem; }
+    .sl-title { font-size: 0.88rem; font-weight: 600; line-height: 1.3; color: var(--text); }
+    .sl-desc { font-size: 0.72rem; color: var(--text-muted); line-height: 1.4; }
+    .sl-tag {
+      align-self: flex-start;
+      padding: 0.15rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      background: rgba(13,110,110,0.08);
+      border: 1px solid rgba(13,110,110,0.2);
+      color: var(--teal);
+    }
+    footer {
+      margin-top: 3rem;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      text-align: center;
+      font-family: 'Fira Code', monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <div class="badge">UFRGS · Deep Learning</div>
+    <h1>ViT - Visual Transformers</h1>
+    <div style="font-family:'Fira Code',monospace;font-size:0.95rem;color:var(--text-dim);margin:0.5rem 0 0.7rem 0;">Prof. Anderson Rocha Tavares</div>
+    <p class="hero-sub">Slides interativos para a aula de Vision Transformers. Navegue pelos blocos abaixo e clique em qualquer slide para abri-lo.</p>
+  </div>
+
+  <div class="blocks">
+
+    <!-- Bloco 1 -->
+    <div class="block-section">
+      <div class="block-title">Bloco 1 — Retomada</div>
+      <div class="slides-grid">
+        <a href="slide01.html" class="slide-link">
+          <div class="sl-num">Slide 01</div>
+          <div class="sl-icon">🔁</div>
+          <div class="sl-title">O que faz um Transformer ser um Transformer?</div>
+          <div class="sl-desc">Toggle entre entrada textual e genérica — mostra que Transformer opera sobre sequências de tokens, não apenas texto.</div>
+          <div class="sl-tag">interativo</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Bloco 2 -->
+    <div class="block-section">
+      <div class="block-title">Bloco 2 — Patches</div>
+      <div class="slides-grid">
+        <a href="slide02.html" class="slide-link">
+          <div class="sl-num">Slide 02</div>
+          <div class="sl-icon">🖼️</div>
+          <div class="sl-title">Como a imagem vira sequência?</div>
+          <div class="sl-desc">Grade 8×8 com controle de tamanho de patch (2×2, 4×4, 8×8) — visualize como patches formam uma sequência.</div>
+          <div class="sl-tag">interativo</div>
+        </a>
+        <a href="slide03.html" class="slide-link">
+          <div class="sl-num">Slide 03</div>
+          <div class="sl-icon">🧩</div>
+          <div class="sl-title">Patches como tokens visuais</div>
+          <div class="sl-desc">Clique em patches individuais para ver o pipeline: patch → achatamento → projeção linear → embedding.</div>
+          <div class="sl-tag">interativo</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Bloco 3 -->
+    <div class="block-section">
+      <div class="block-title">Bloco 3 — Posição</div>
+      <div class="slides-grid">
+        <a href="slide04.html" class="slide-link">
+          <div class="sl-num">Slide 04</div>
+          <div class="sl-icon">📍</div>
+          <div class="sl-title">Por que a posição dos patches importa?</div>
+          <div class="sl-desc">Embaralhe e restaure patches de uma imagem — veja como a estrutura espacial se perde sem embedding posicional.</div>
+          <div class="sl-tag">interativo</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Bloco 4 -->
+    <div class="block-section">
+      <div class="block-title">Bloco 4 — Encoder Visão</div>
+      <div class="slides-grid">
+        <a href="slide05.html" class="slide-link">
+          <div class="sl-num">Slide 05</div>
+          <div class="sl-icon">⚙️</div>
+          <div class="sl-title">A sequência de patches entra no encoder</div>
+          <div class="sl-desc">Pipeline passo a passo com revelação progressiva dos componentes: patches → embeddings → encoder → representações.</div>
+          <div class="sl-tag">interativo</div>
+        </a>
+        <a href="slide06.html" class="slide-link">
+          <div class="sl-num">Slide 06</div>
+          <div class="sl-icon">🔥</div>
+          <div class="sl-title">QKᵀ, Escalonamento e Softmax</div>
+          <div class="sl-desc">Cálculo dos pesos de atenção entre patches: produto interno Q·Kᵀ, divisão por √dₖ e softmax linha a linha — resultado é a matriz S.</div>
+          <div class="sl-tag">interativo</div>
+        </a>
+        <a href="slide07.html" class="slide-link">
+          <div class="sl-num">Slide 07</div>
+          <div class="sl-icon">🧮</div>
+          <div class="sl-title">Z = S · V — Embeddings Contextuais</div>
+          <div class="sl-desc">Multiplicação da matriz de atenção S pelos values V — gera o embedding contextual de cada patch, misturando informação de toda a imagem.</div>
+          <div class="sl-tag">interativo</div>
+        </a>
+        <a href="slide08.html" class="slide-link">
+          <div class="sl-num">Slide 08</div>
+          <div class="sl-icon">👁️</div>
+          <div class="sl-title">Atenção entre regiões da imagem</div>
+          <div class="sl-desc">Clique em um patch para ver as conexões de atenção com outros — linhas de força variável mostram quem "conversa" com quem.</div>
+          <div class="sl-tag">interativo</div>
+        </a>
+        <a href="slide09.html" class="slide-link">
+          <div class="sl-num">Slide 09</div>
+          <div class="sl-icon">🧱</div>
+          <div class="sl-title">Bloco Encoder do ViT</div>
+          <div class="sl-desc">Arquitetura interna do bloco encoder: LN → MHA → ⊕ → LN → MLP → ⊕, repetido L vezes — clique em cada componente para ver a explicação detalhada.</div>
+          <div class="sl-tag">interativo</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Bloco 5 -->
+    <div class="block-section">
+      <div class="block-title">Bloco 5 — CLS e CNN</div>
+      <div class="slides-grid">
+        <a href="slide10.html" class="slide-link">
+          <div class="sl-num">Slide 10</div>
+          <div class="sl-icon">🏷️</div>
+          <div class="sl-title">Pipeline completo do ViT com [CLS]</div>
+          <div class="sl-desc">Percorre o pipeline end-to-end — imagem → patches → projeção → token [CLS] + embeddings posicionais → blocos encoder → classificação — com cálculos matriciais e heatmap de atenção multi-cabeça.</div>
+          <div class="sl-tag">interativo</div>
+        </a>
+        <a href="slide11.html" class="slide-link">
+          <div class="sl-num">Slide 11</div>
+          <div class="sl-icon">⚖️</div>
+          <div class="sl-title">ViT versus CNN</div>
+          <div class="sl-desc">Convolução local animada (kernel 3×3 sobre canvas 9×9) vs. atenção global do ViT — barras de acurácia por tamanho de dataset (ImageNet, JFT-300M) e insight final sobre indutividade.</div>
+          <div class="sl-tag">interativo</div>
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <footer style="font-size:0.85rem;color:var(--text-muted);">
+    UFRGS · Curso de Deep Learning · Slides vibe-codados com ❤️
+  </footer>
+</body>
+</html>

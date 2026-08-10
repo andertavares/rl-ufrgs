@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Slide 01 – O que faz um Transformer ser um Transformer?</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .pipeline-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: nowrap;
+      margin: 0.5rem 0;
+    }
+    .pipe-box {
+      background: var(--bg3);
+      border: 2px solid var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 1rem;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+      min-width: 110px;
+      transition: all 0.3s;
+    }
+    .pipe-box.highlight { background: var(--teal-lt); border-color: var(--teal); color: var(--teal); }
+    .pipe-arrow {
+      font-size: 1.3rem;
+      color: var(--text-dim);
+      padding: 0 0.2rem;
+      flex-shrink: 0;
+    }
+    .token-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .token-mode-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+    }
+    .token-chips {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .chip {
+      padding: 0.4rem 1rem;
+      border-radius: 8px;
+      font-family: 'Fira Code', monospace;
+      font-size: 1.05rem;
+      font-weight: 600;
+      border: 2px solid var(--border2);
+      background: var(--bg3);
+      color: var(--text);
+      transition: all 0.35s;
+    }
+    .chip.text-mode { background: var(--blue-lt); border-color: #93c5fd; color: var(--blue); }
+    .chip.generic-mode { background: var(--purple-lt); border-color: #c4b5fd; color: var(--purple); }
+    .pos-indicators {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .pos-badge {
+      font-size: 0.75rem;
+      font-family: 'Fira Code', monospace;
+      font-weight: 600;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      background: var(--yellow-lt);
+      border: 1px solid #fde047;
+      color: var(--yellow);
+    }
+    .embed-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .embed-vec {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      padding: 0.2rem 0.45rem;
+    }
+    .toggle-section {
+      display: flex;
+      justify-content: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .key-message {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.5;
+      padding: 0.3rem 1rem;
+    }
+    .centered-guide {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <header class="slide-header">
+      <span class="course-tag">ViT</span>
+      <span style="font-family:'Fira Code',monospace;font-size:0.85rem;color:var(--text-dim);font-weight:600;flex:1;text-align:center;">Prof. Anderson Rocha Tavares</span>
+      <span class="slide-counter">Bloco 1 · Slide 1 / 1</span>
+    </header>
+
+    <main class="slide-main">
+      <div class="title-block">
+        <h1 class="slide-title">O que faz um Transformer ser um Transformer?</h1>
+          <p class="slide-subtitle">Bloco 1 — Retomada</p>
+      </div>
+
+      <p class="key-message">
+        Transformer é uma arquitetura para <strong>sequências de tokens</strong> — não apenas para linguagem.
+      </p>
+
+      <!-- Toggle buttons -->
+      <div class="toggle-section">
+        <button class="btn-toggle active" id="btn-text" onclick="setMode('text')">Entrada textual</button>
+        <button class="btn-toggle" id="btn-generic" onclick="setMode('generic')">Entrada genérica</button>
+      </div>
+
+      <!-- Token display -->
+      <div class="panel" style="align-items:center; gap:0.7rem;">
+        <span class="panel-title" style="align-self:flex-start;">Tokens de entrada</span>
+
+        <div class="token-section">
+          <div class="token-chips" id="chips-container">
+            <span class="chip text-mode" id="t1">O</span>
+            <span class="chip text-mode" id="t2">gato</span>
+            <span class="chip text-mode" id="t3">dorme</span>
+          </div>
+          <div class="pos-indicators">
+            <span class="pos-badge">pos 0</span>
+            <span class="pos-badge">pos 1</span>
+            <span class="pos-badge">pos 2</span>
+          </div>
+          <div class="embed-row" id="embed-row">
+            <span class="embed-vec">[0.23, -0.51, 0.84…]</span>
+            <span class="embed-vec">[0.67, 0.12, -0.39…]</span>
+            <span class="embed-vec">[-0.18, 0.74, 0.55…]</span>
+          </div>
+        </div>
+
+        <!-- Pipeline -->
+        <div class="divider" style="width:100%;"></div>
+        <span class="token-mode-label">Pipeline Transformer</span>
+        <div class="pipeline-row">
+          <div class="pipe-box" id="p1">Tokens</div>
+          <span class="pipe-arrow">→</span>
+          <div class="pipe-box" id="p2">Embeddings</div>
+          <span class="pipe-arrow">→</span>
+          <div class="pipe-box" id="p3">Posição</div>
+          <span class="pipe-arrow">→</span>
+          <div class="pipe-box highlight" id="p4">Self-Attention</div>
+        </div>
+        <p style="font-size:0.83rem;color:var(--text-dim);font-family:'Fira Code',monospace;">
+          A mesma estrutura funciona para qualquer "coisa" modelada como token
+        </p>
+      </div>
+
+      <div class="highlight-box teal centered-guide">
+        <span class="icon">🤔</span>
+        <span><strong>Pergunta guia:</strong> Como transformar outras "coisas" em tokens?<br>
+        </span>
+      </div>
+    </main>
+
+    <nav class="slide-nav">
+      <button class="btn-nav btn-prev" disabled>← Anterior</button>
+      <div class="nav-dots">
+        <div class="dot active"></div>
+      </div>
+      <button class="btn-nav btn-next" onclick="location.href='slide02.html'">Próximo →</button>
+    </nav>
+  </div>
+
+  <script>
+    let currentMode = 'text';
+
+    const textTokens = ['O', 'gato', 'dorme'];
+    const genericTokens = ['T₁', 'T₂', 'T₃'];
+    const textEmbeds = [
+      '[0.23, -0.51, 0.84…]',
+      '[0.67, 0.12, -0.39…]',
+      '[-0.18, 0.74, 0.55…]'
+    ];
+    const genericEmbeds = [
+      '[1.02, 0.00, -0.77…]',
+      '[0.11, 0.98, 0.33…]',
+      '[-0.45, -0.22, 0.91…]'
+    ];
+
+    function setMode(mode) {
+      currentMode = mode;
+      const chips = document.querySelectorAll('#chips-container .chip');
+      const btnText = document.getElementById('btn-text');
+      const btnGeneric = document.getElementById('btn-generic');
+
+
+      const embedRow = document.getElementById('embed-row').children;
+      if (mode === 'text') {
+        btnText.classList.add('active');
+        btnGeneric.classList.remove('active');
+        chips.forEach((chip, i) => {
+          chip.textContent = textTokens[i];
+          chip.classList.remove('generic-mode');
+          chip.classList.add('text-mode');
+        });
+        Array.from(embedRow).forEach((span, i) => {
+          span.textContent = textEmbeds[i];
+        });
+      } else {
+        btnText.classList.remove('active');
+        btnGeneric.classList.add('active');
+        chips.forEach((chip, i) => {
+          chip.textContent = genericTokens[i];
+          chip.classList.remove('text-mode');
+          chip.classList.add('generic-mode');
+        });
+        Array.from(embedRow).forEach((span, i) => {
+          span.textContent = genericEmbeds[i];
+        });
+      }
+
+      // Animate pipeline highlight cycling
+      const boxes = ['p1','p2','p3','p4'];
+      boxes.forEach(id => document.getElementById(id).classList.remove('highlight'));
+      let step = 0;
+      const interval = setInterval(() => {
+        if (step > 0) document.getElementById(boxes[step-1]).classList.remove('highlight');
+        document.getElementById(boxes[step]).classList.add('highlight');
+        step++;
+        if (step >= boxes.length) {
+          clearInterval(interval);
+        }
+      }, 300);
+    }
+
+    // Initial animation
+    setTimeout(() => setMode('text'), 400);
+  </script>
+</body>
+</html>
