@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Multi-armed Bandit - 10 Jogadas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg:        #f8f9fb;
+            --bg2:       #ffffff;
+            --border:    #c7d0e0;
+            --text:      #0f1724;
+            --text-muted:#3d4f6e;
+            --text-dim:  #6b7fa3;
+            --purple:    #5b21b6;
+            --blue:      #1d4ed8;
+            --green:     #166534;
+            --orange:    #c2410c;
+            --shadow:    0 2px 16px rgba(15,23,36,0.10);
+            --radius:    14px;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 3.5rem 1.5rem;
+        }
+
+        .card {
+            background: var(--bg2);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            max-width: 920px;
+            width: 100%;
+            color: inherit;
+        }
+
+        h2 { font-size: 1.8rem; color: var(--purple); margin-bottom: 0.5rem; }
+        p { font-size: 1rem; color: var(--text-muted); }
+
+        .status-panel { display: flex; gap: 1rem; margin: 1rem 0 1.4rem; }
+        .info-box {
+            flex: 1;
+            background-color: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            box-shadow: 0 6px 18px rgba(15,23,36,0.04);
+            text-align: center;
+        }
+        .info-box div:first-child { color: var(--text-dim); font-size: 0.95rem; }
+        .info-value { font-size: 28px; font-weight: 700; margin-top: 6px; color: var(--text); }
+
+        #remaining-pulls { color: var(--orange); }
+        #total-reward { color: var(--blue); }
+
+        .levers { display: flex; gap: 1rem; margin: 1.4rem 0; }
+        .btn-lever {
+            padding: 16px 20px; font-size: 1rem; font-weight: 700; cursor: pointer;
+            border-radius: 12px; border: none; color: white; flex: 1;
+            transition: transform 0.12s, box-shadow 0.12s;
+            box-shadow: 0 8px 20px rgba(15,23,36,0.06);
+        }
+        .btn-lever:active { transform: translateY(2px); }
+        .btn-lever:disabled { background: #babbbc; cursor: not-allowed; box-shadow: none; }
+        .lever-a { background: linear-gradient(180deg,#16a34a 0%, #166534 100%); }
+        .lever-b { background: linear-gradient(180deg,#0ea5b5 0%, #0e7490 100%); }
+
+        .stats { display: flex; gap: 1rem; margin-top: 0.5rem; }
+        .history {
+            flex: 1; min-height: 200px; max-height: 260px; overflow-y: auto;
+            border-radius: 10px; background: linear-gradient(180deg,#ffffff,#fbfdff);
+            border: 1px solid var(--border); padding: 12px;
+        }
+        .history h4 { margin: 0 0 8px 0; color: var(--text-muted); font-size: 1rem; }
+        .history p { margin: 6px 0; font-size: 0.95rem; color: var(--text); }
+
+        #quiz-section { display: none; margin-top: 22px; padding: 18px; background: #fff7ed; border-radius: 10px; border: 1px solid #ffecd1; }
+        .input-group { margin: 12px 0; display: flex; flex-direction: column; gap: 6px; }
+        input[type="number"], select { padding: 10px; width: 100%; max-width: 320px; border-radius: 8px; border: 1px solid var(--border); }
+        .btn-submit { background: linear-gradient(180deg,#fb923c,#c2410c); color: white; padding: 10px 18px; border-radius: 8px; border: none; font-weight: 700; }
+
+        #result-section { display: none; margin-top: 20px; font-size: 1rem; color: #0f5132; background: #ecfdf5; padding: 18px; border-radius: 10px; border: 1px solid #b7f5d8; }
+        #result-section ul { margin-top: 8px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Experimento: Multi-armed Bandit</h2>
+        <p>Você tem um <strong>orçamento fixo de 10 jogadas</strong> para descobrir a melhor alavanca e acumular o máximo de pontos possível.</p>
+
+        <div class="status-panel">
+            <div class="info-box">
+                <div>Jogadas Restantes</div>
+                <div class="info-value" id="remaining-pulls">10</div>
+            </div>
+            <div class="info-box">
+                <div>Recompensa Total</div>
+                <div class="info-value" id="total-reward">0</div>
+            </div>
+        </div>
+
+        <div class="levers">
+            <button id="btn-a" class="btn-lever lever-a" onclick="pullLever('A')">Puxar Alavanca A</button>
+            <button id="btn-b" class="btn-lever lever-b" onclick="pullLever('B')">Puxar Alavanca B</button>
+        </div>
+
+        <div class="stats">
+            <div class="history" id="history-a">
+                <h4>Amostras - Alavanca A</h4>
+            </div>
+            <div class="history" id="history-b">
+                <h4>Amostras - Alavanca B</h4>
+            </div>
+        </div>
+
+        <div id="quiz-section">
+            <h3>Avaliação do Estudante</h3>
+            <p>Suas jogadas acabaram! Baseado nas amostras coletadas, responda:</p>
+            <div class="input-group">
+                <label>1. Estime a recompensa esperada da Alavanca A:</label>
+                <input type="number" id="est-a" step="1" placeholder="Ex: 7">
+            </div>
+            <div class="input-group">
+                <label>2. Estime a recompensa esperada da Alavanca B:</label>
+                <input type="number" id="est-b" step="1" placeholder="Ex: 7">
+            </div>
+            <div class="input-group">
+                <label>3. Qual alavanca é a melhor?</label>
+                <select id="best-lever">
+                    <option value="">Selecione...</option>
+                    <option value="A">Alavanca A</option>
+                    <option value="B">Alavanca B</option>
+                </select>
+            </div>
+            <button class="btn-submit" onclick="checkAnswers()">Confirmar Respostas</button>
+        </div>
+
+        <div id="result-section"></div>
+
+        <script>
+        let total = 0;
+        let pullsA = 0;
+        let pullsB = 0;
+        const MAX_PULLS = 10;
+        let currentPulls = 0;
+
+        // Função Box-Muller para gerar distribuição Gaussiana normal (média, desvio padrão)
+        function gaussianRandom(mean, stdDev) {
+            let u = 1 - Math.random();
+            let v = Math.random();
+            let z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            return z * stdDev + mean;
+        }
+
+        function pullLever(lever) {
+            if (currentPulls >= MAX_PULLS) return;
+
+            let reward = 0;
+            if (lever === 'A') {
+                // Alavanca A: Média 10, Desvio Padrão 3 (arredondado para inteiro)
+                reward = Math.round(gaussianRandom(10, 3));
+                pullsA++;
+                addHistory('history-a', reward, pullsA);
+            } else {
+                // Alavanca B: Média 5, Desvio Padrão 3 (arredondado para inteiro)
+                reward = Math.round(gaussianRandom(5, 3));
+                pullsB++;
+                addHistory('history-b', reward, pullsB);
+            }
+            
+            total += reward;
+            currentPulls++;
+            
+            document.getElementById('total-reward').innerText = total;
+            document.getElementById('remaining-pulls').innerText = (MAX_PULLS - currentPulls);
+
+            // Verifica se o orçamento acabou
+            if (currentPulls >= MAX_PULLS) {
+                endExperiment();
+            }
+        }
+
+        function addHistory(elementId, reward, pullNumber) {
+            const historyDiv = document.getElementById(elementId);
+            const p = document.createElement('p');
+            const displayReward = reward >= 0 ? `+${reward}` : reward;
+            p.innerHTML = `<strong>#${pullNumber}:</strong> ${displayReward}`;
+            historyDiv.appendChild(p);
+            
+            historyDiv.scrollTop = historyDiv.scrollHeight;
+        }
+
+        function endExperiment() {
+            // Desativa botões
+            document.getElementById('btn-a').disabled = true;
+            document.getElementById('btn-b').disabled = true;
+            
+            // Mostra quiz
+            document.getElementById('quiz-section').style.display = 'block';
+            
+            // Rola a tela suavemente para o quiz
+            setTimeout(() => {
+                document.getElementById('quiz-section').scrollIntoView({ behavior: 'smooth' });
+            }, 300);
+        }
+
+        function checkAnswers() {
+            const estA = document.getElementById('est-a').value;
+            const estB = document.getElementById('est-b').value;
+            const best = document.getElementById('best-lever').value;
+            
+            if (!estA || !estB || !best) {
+                alert("Por favor, preencha todas as estimativas antes de confirmar!");
+                return;
+            }
+
+            const resultDiv = document.getElementById('result-section');
+            document.querySelector('#quiz-section .btn-submit').disabled = true;
+            
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <h3>Resultados do Experimento</h3>
+                <hr style="border-top: 1px solid #c3e6cb; margin: 15px 0;">
+                <p><strong>Configurações Reais (Ocultas):</strong></p>
+                <ul>
+                    <li><strong>Alavanca A:</strong> Recompensa esperada = 10</li>
+                    <li><strong>Alavanca B:</strong> Recompensa esperada = 5</li>
+                </ul>
+                <p>A melhor alavanca era a <strong>Alavanca A</strong>.</p>
+                <br>
+                <p><strong>Resumo do seu Desempenho:</strong></p>
+                <ul>
+                    <li><strong>Recompensa Total Obtida em 10 jogadas:</strong> ${total}</li>
+                    <li><strong>Sua Estimativa para A:</strong> ${estA}</li>
+                    <li><strong>Sua Estimativa para B:</strong> ${estB}</li>
+                    <li><strong>Alavanca escolhida como melhor:</strong> ${best}</li>
+                </ul>
+            `;
+            
+            setTimeout(() => {
+                resultDiv.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+    </script>
+</body>
+</html>
