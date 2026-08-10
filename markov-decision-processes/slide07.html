@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Slide 07 – Retorno: o problema do atraso</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .diagram {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.2rem;
+      font-family: 'Fira Code', monospace;
+      white-space: pre;
+      overflow-x: auto;
+      font-size: 0.92rem;
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <header class="slide-header">
+      <span class="course-tag">MDP</span>
+      <span style="font-family:'Fira Code',monospace;font-size:0.85rem;color:var(--text-dim);font-weight:600;flex:1;text-align:center;">Prof. Anderson Rocha Tavares</span>
+      <span class="slide-counter">Bloco 4 · Slide 7 / 9</span>
+      <a class="back-link" href="index.html">Índice ⊞</a>
+    </header>
+
+    <main class="slide-main">
+      <div class="title-block">
+        <h1 class="slide-title">Retorno: o problema do atraso</h1>
+        <p class="slide-subtitle">Bloco 4 — Retorno</p>
+      </div>
+
+      <div class="panel">
+        <span class="panel-title">Ação A</span>
+        <div class="diagram">                 +1000
+Ação A ────────────●
+s₁ → s₂ → s₃ → ... → s₁₀₀₀</div>
+      </div>
+
+      <div class="panel">
+        <span class="panel-title">Ação B</span>
+        <div class="diagram">      +1000
+Ação B ──●
+s₁ → s₂</div>
+      </div>
+
+      <div class="highlight-box purple">
+        <span class="icon">🤔</span>
+        <span>Sem desconto, qual ação parece melhor?</span>
+      </div>
+
+      <p class="key-message">Os retornos não descontados podem ser <strong>iguais</strong> (ambos somam 1000).</p>
+
+      <div class="highlight-box purple">
+        <span class="icon">❓</span>
+        <span>Mas intuitivamente as duas opções parecem realmente equivalentes?</span>
+      </div>
+
+      <p class="key-message">Isso motiva o <strong>desconto</strong> de recompensas futuras: receber a mesma recompensa mais cedo deveria valer mais.</p>
+    </main>
+
+    <nav class="slide-nav">
+      <button class="btn-nav btn-prev" onclick="location.href='slide06.html'">← Anterior</button>
+      <div class="nav-dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <button class="btn-nav btn-next" onclick="location.href='slide08.html'">Próximo →</button>
+    </nav>
+  </div>
+</body>
+</html>

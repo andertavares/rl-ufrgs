@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Slide 08 – Retorno descontado: interação com γ</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .diagram {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.2rem;
+      font-family: 'Fira Code', monospace;
+      white-space: pre;
+      overflow-x: auto;
+      font-size: 0.92rem;
+      color: var(--text);
+    }
+    .boxed {
+      display: inline-block;
+      border: 2px solid var(--purple);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 1.1rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--purple);
+    }
+    .boxed-wrap { text-align: center; }
+    .slider-row { display: flex; align-items: center; gap: 1rem; }
+    .slider-row input[type="range"] { flex: 1; }
+    .gamma-value { font-family: 'Fira Code', monospace; font-weight: 700; font-size: 1.2rem; color: var(--purple); min-width: 60px; text-align: right; }
+    .step-eq {
+      font-size: 1.05rem;
+      font-family: 'Fira Code', monospace;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 0.7rem 1rem;
+      text-align: center;
+    }
+    .accumulator {
+      font-family: 'Fira Code', monospace;
+      font-size: 1.3rem;
+      font-weight: 700;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      text-align: center;
+    }
+    .prob-table { margin: 0 auto; border-collapse: collapse; }
+    .prob-table td { padding: 4px 10px; font-family: 'Fira Code', monospace; }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <header class="slide-header">
+      <span class="course-tag">MDP</span>
+      <span style="font-family:'Fira Code',monospace;font-size:0.85rem;color:var(--text-dim);font-weight:600;flex:1;text-align:center;">Prof. Anderson Rocha Tavares</span>
+      <span class="slide-counter">Bloco 5 · Slide 8 / 9</span>
+      <a class="back-link" href="index.html">Índice ⊞</a>
+    </header>
+
+    <main class="slide-main">
+      <div class="title-block">
+        <h1 class="slide-title">Retorno descontado: interação com γ</h1>
+        <p class="slide-subtitle">Bloco 5 — Desconto</p>
+      </div>
+
+      <div class="boxed-wrap">
+        <div class="boxed">Gt = Rt+1 + γRt+2 + γ²Rt+3 + γ³Rt+4 + ...</div>
+      </div>
+
+      <div class="panel">
+        <div class="diagram">             recompensa
+t ───── t+1 ─── t+2 ─── t+3 ─── t+4
+         +1       +1       +1      +10</div>
+      </div>
+
+      <div class="panel">
+        <span class="panel-title">Slider de γ</span>
+        <div class="slider-row">
+          <span>γ</span>
+          <input type="range" id="gamma-slider" min="0" max="1" step="0.01" value="0.9" oninput="updateGamma(this.value)">
+          <span class="gamma-value" id="gamma-value">0.90</span>
+        </div>
+        <div class="step-eq" id="gamma-eq">G = 1×1 + 0.90×1 + 0.90^2×1 + 0.90^3×10</div>
+        <div class="accumulator" id="gamma-total">G = 12.421</div>
+      </div>
+
+      <table class="prob-table">
+        <tr><td>recompensa</td><td>peso</td></tr>
+        <tr><td>Rₜ₊₁</td><td>1</td></tr>
+        <tr><td>Rₜ₊₂</td><td>γ</td></tr>
+        <tr><td>Rₜ₊₃</td><td>γ²</td></tr>
+        <tr><td>Rₜ₊₄</td><td>γ³</td></tr>
+      </table>
+
+      <div class="highlight-box orange" id="gamma-hint">
+        <span class="icon">💡</span>
+        <span>As recompensas futuras perdem cada vez menos peso conforme γ se aproxima de 1.</span>
+      </div>
+    </main>
+
+    <nav class="slide-nav">
+      <button class="btn-nav btn-prev" onclick="location.href='slide07.html'">← Anterior</button>
+      <div class="nav-dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot active"></div>
+        <div class="dot"></div>
+      </div>
+      <button class="btn-nav btn-next" onclick="location.href='slide09.html'">Próximo →</button>
+    </nav>
+  </div>
+
+  <script>
+    const rewards = [1, 1, 1, 10];
+    function updateGamma(value) {
+        const gamma = Number(value);
+        document.getElementById('gamma-value').innerText = gamma.toFixed(2);
+
+        const terms = rewards.map((r, k) => {
+            const coef = k === 0 ? '1' : k === 1 ? gamma.toFixed(2) : `${gamma.toFixed(2)}^${k}`;
+            return `${coef}×${r}`;
+        });
+        document.getElementById('gamma-eq').innerText = `G = ${terms.join(' + ')}`;
+
+        const total = rewards.reduce((sum, r, k) => sum + Math.pow(gamma, k) * r, 0);
+        document.getElementById('gamma-total').innerText = `G = ${total.toFixed(3)}`;
+
+        const hintText = document.getElementById('gamma-hint').querySelector('span:last-child');
+        if (gamma === 0) {
+            hintText.innerText = 'γ = 0: só importa a próxima recompensa.';
+        } else if (gamma === 1) {
+            hintText.innerText = 'γ = 1: todas as recompensas futuras têm o mesmo peso da recompensa imediata.';
+        } else {
+            hintText.innerText = 'As recompensas futuras perdem cada vez menos peso conforme γ se aproxima de 1.';
+        }
+    }
+    updateGamma(document.getElementById('gamma-slider').value);
+  </script>
+</body>
+</html>

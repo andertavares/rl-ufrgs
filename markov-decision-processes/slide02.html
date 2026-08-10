@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Slide 02 – Explorar estados, ações e transições</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .diagram {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.2rem;
+      font-family: 'Fira Code', monospace;
+      white-space: pre;
+      overflow-x: auto;
+      font-size: 0.92rem;
+      color: var(--text);
+    }
+    .toggle-section { display: flex; justify-content: center; gap: 0.6rem; flex-wrap: wrap; }
+    .reveal { display: none; }
+    .reveal.shown { display: block; }
+    .step-eq {
+      font-size: 1.05rem;
+      font-family: 'Fira Code', monospace;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 0.7rem 1rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <header class="slide-header">
+      <span class="course-tag">MDP</span>
+      <span style="font-family:'Fira Code',monospace;font-size:0.85rem;color:var(--text-dim);font-weight:600;flex:1;text-align:center;">Prof. Anderson Rocha Tavares</span>
+      <span class="slide-counter">Bloco 1 · Slide 2 / 9</span>
+      <a class="back-link" href="index.html">Índice ⊞</a>
+    </header>
+
+    <main class="slide-main">
+      <div class="title-block">
+        <h1 class="slide-title">Explorar estados, ações e transições</h1>
+        <p class="slide-subtitle">Bloco 1 — MDP</p>
+      </div>
+
+      <div class="panel" style="align-items:center;">
+        <span class="panel-title" style="align-self:flex-start;">Estado atual</span>
+        <div class="diagram">ESTADO ATUAL
+    [ Hungry ]</div>
+
+        <div class="toggle-section">
+          <button class="btn-toggle" id="btn-eat" onclick="chooseAction('eat')">Eat</button>
+          <button class="btn-toggle" id="btn-noeat" onclick="chooseAction('noeat')">Don't eat</button>
+        </div>
+
+        <div class="reveal" id="eat-tree" style="width:100%;">
+          <div class="diagram">                 ┌── Hungry   (p = 0.1)
+Eat ─────────────┤
+                 ├── Full     (p = 0.9)
+                 └── Starve   (p = 0.0)</div>
+          <div class="highlight-box purple">
+            <span class="icon">❓</span>
+            <span>Se estou em <code>Hungry</code> e escolho <code>Eat</code>, qual é a probabilidade de terminar em <code>Full</code>?</span>
+          </div>
+          <div class="toggle-section">
+            <button class="btn-toggle" onclick="revealProb()">Revelar resposta</button>
+          </div>
+          <div class="reveal" id="eat-prob">
+            <div class="step-eq">P(Full | Hungry, Eat) = 0.9</div>
+          </div>
+        </div>
+
+        <div class="reveal" id="noeat-tree" style="width:100%;">
+          <div class="diagram">                     ┌── Hungry   (p = 0.8)
+Don't eat ───────────┤
+                     ├── Full     (p = 0.0)
+                     └── Starve   (p = 0.2)</div>
+        </div>
+      </div>
+    </main>
+
+    <nav class="slide-nav">
+      <button class="btn-nav btn-prev" onclick="location.href='slide01.html'">← Anterior</button>
+      <div class="nav-dots">
+        <div class="dot"></div>
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <button class="btn-nav btn-next" onclick="location.href='slide03.html'">Próximo →</button>
+    </nav>
+  </div>
+
+  <script>
+    function chooseAction(action) {
+      document.getElementById('btn-eat').classList.toggle('active', action === 'eat');
+      document.getElementById('btn-noeat').classList.toggle('active', action === 'noeat');
+      document.getElementById('eat-tree').classList.toggle('shown', action === 'eat');
+      document.getElementById('noeat-tree').classList.toggle('shown', action === 'noeat');
+    }
+    function revealProb() {
+      document.getElementById('eat-prob').classList.add('shown');
+    }
+  </script>
+</body>
+</html>

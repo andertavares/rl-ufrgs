@@ -1,638 +1,228 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MDP, Retorno e Desconto — Slides Interativos</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        :root {
-            --bg:        #f8f9fb;
-            --bg2:       #ffffff;
-            --bg3:       #f0f2f6;
-            --border:    #c7d0e0;
-            --text:      #0f1724;
-            --text-muted:#3d4f6e;
-            --text-dim:  #6b7fa3;
-            --purple:    #5b21b6;
-            --purple-lt: #ede9fe;
-            --blue:      #1d4ed8;
-            --blue-lt:   #dbeafe;
-            --cyan:      #0e7490;
-            --green:     #166534;
-            --green-lt:  #dcfce7;
-            --orange:    #c2410c;
-            --orange-lt: #ffedd5;
-            --shadow:    0 2px 16px rgba(15,23,36,0.10);
-            --radius:    14px;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MDP, Retorno e Desconto — Índice dos Slides</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f8f9fb; --bg2: #ffffff; --bg3: #f0f2f6;
+      --border: #c7d0e0; --border2: #d1d9e8;
+      --text: #0f1724; --text-muted: #3d4f6e; --text-dim: #6b7fa3;
+      --purple: #5b21b6; --blue: #1d4ed8; --cyan: #0e7490;
+      --green: #166534; --grad1: linear-gradient(135deg, #5b21b6, #1d4ed8);
+    }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 3rem 1.5rem;
+    }
+    .hero { text-align: center; margin-bottom: 3rem; }
+    .badge {
+      display: inline-block;
+      padding: 0.3rem 1rem;
+      border-radius: 999px;
+      background: rgba(91,33,182,0.08);
+      border: 1px solid rgba(91,33,182,0.25);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--purple);
+      margin-bottom: 1.2rem;
+    }
+    h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      background: var(--grad1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.75rem;
+    }
+    .hero-sub { color: var(--text-muted); font-size: 1.05rem; max-width: 580px; margin: 0 auto; line-height: 1.6; }
 
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 2.5rem 1.5rem 6rem;
-        }
-
-        .deck {
-            max-width: 980px;
-            width: 100%;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 0.3rem 1rem;
-            border-radius: 999px;
-            background: rgba(91,33,182,0.08);
-            border: 1px solid rgba(91,33,182,0.25);
-            font-size: 0.85rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: var(--purple);
-            margin-bottom: 1rem;
-        }
-
-        .slide {
-            display: none;
-            background: var(--bg2);
-            border: 1.5px solid var(--border);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            padding: 2.2rem 2.4rem;
-        }
-        .slide.active { display: block; }
-
-        h2 { font-size: 1.7rem; color: var(--purple); margin-bottom: 0.6rem; }
-        h3 { font-size: 1.2rem; color: var(--cyan); margin: 1rem 0 0.5rem; }
-        p { font-size: 1rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 0.6rem; }
-        strong { color: var(--text); }
-
-        .diagram {
-            background: var(--bg3);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 1rem 1.2rem;
-            font-family: 'Courier New', monospace;
-            white-space: pre;
-            overflow-x: auto;
-            margin: 0.8rem 0;
-            font-size: 0.95rem;
-            color: var(--text);
-        }
-
-        .question {
-            background: var(--purple-lt);
-            border: 1px solid rgba(91,33,182,0.25);
-            border-radius: 10px;
-            padding: 0.9rem 1.1rem;
-            margin: 0.9rem 0;
-            font-weight: 600;
-            color: var(--purple);
-        }
-
-        .hint {
-            background: var(--orange-lt);
-            border: 1px solid rgba(194,65,12,0.25);
-            border-radius: 10px;
-            padding: 0.9rem 1.1rem;
-            margin: 0.9rem 0;
-            font-weight: 600;
-            color: var(--orange);
-        }
-
-        .btn {
-            padding: 10px 18px;
-            font-size: 0.95rem;
-            font-weight: 700;
-            cursor: pointer;
-            border-radius: 10px;
-            border: none;
-            color: white;
-            background: linear-gradient(180deg,#7c3aed,#5b21b6);
-            box-shadow: 0 6px 16px rgba(15,23,36,0.08);
-            transition: transform 0.1s;
-        }
-        .btn:active { transform: translateY(1px); }
-        .btn:disabled { background: #babbbc; cursor: not-allowed; box-shadow: none; }
-        .btn-secondary { background: linear-gradient(180deg,#0ea5b5,#0e7490); }
-        .btn-row { display: flex; gap: 0.7rem; flex-wrap: wrap; margin: 0.8rem 0; }
-
-        .reveal { display: none; margin-top: 0.9rem; }
-        .reveal.shown { display: block; }
-
-        .grid4x3 {
-            display: grid;
-            grid-template-columns: repeat(4, 76px);
-            grid-template-rows: repeat(3, 60px);
-            gap: 6px;
-            margin: 1rem 0;
-        }
-        .cell {
-            border: 1.5px solid var(--border);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.85rem;
-            font-weight: 700;
-            cursor: pointer;
-            background: var(--bg2);
-            color: var(--text-dim);
-            transition: box-shadow 0.15s, border-color 0.15s;
-        }
-        .cell:hover { border-color: var(--purple); }
-        .cell.selected { border-color: var(--purple); box-shadow: 0 0 0 2px var(--purple-lt); color: var(--text); }
-        .cell.wall { background: #d9dde6; cursor: not-allowed; }
-        .cell.goal { background: var(--green-lt); color: var(--green); }
-        .cell.pit { background: #fee2e2; color: #991b1b; }
-        .cell.target { outline: 3px solid var(--orange); }
-
-        .actions-row { display: flex; gap: 0.6rem; margin: 0.8rem 0; }
-        .action-btn {
-            width: 52px; height: 44px; font-size: 1.2rem; font-weight: 700;
-            border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg2);
-            cursor: pointer;
-        }
-        .action-btn:hover { border-color: var(--purple); }
-        .action-btn:disabled { color: #babbbc; cursor: not-allowed; }
-
-        .prob-table { margin-top: 0.8rem; border-collapse: collapse; }
-        .prob-table td { padding: 4px 10px; font-family: 'Courier New', monospace; }
-
-        .reward-chip {
-            display: inline-block;
-            padding: 8px 16px;
-            margin: 4px;
-            border-radius: 8px;
-            font-weight: 700;
-            cursor: pointer;
-            border: 1.5px solid var(--border);
-            background: var(--bg2);
-            transition: transform 0.1s;
-        }
-        .reward-chip:hover { transform: translateY(-2px); }
-        .reward-chip.used { opacity: 0.4; cursor: not-allowed; }
-        .reward-chip.pos { color: var(--green); }
-        .reward-chip.neg { color: #991b1b; }
-
-        .accumulator {
-            font-family: 'Courier New', monospace;
-            font-size: 1.3rem;
-            font-weight: 700;
-            background: var(--bg3);
-            border-radius: 10px;
-            padding: 1rem;
-            margin-top: 0.8rem;
-            text-align: center;
-        }
-
-        .slider-row { display: flex; align-items: center; gap: 1rem; margin: 1rem 0; }
-        .slider-row input[type="range"] { flex: 1; }
-        .gamma-value { font-family: 'Courier New', monospace; font-weight: 700; font-size: 1.2rem; color: var(--purple); min-width: 70px; }
-
-        .step-eq {
-            font-size: 1.15rem;
-            font-family: 'Courier New', monospace;
-            background: var(--bg3);
-            border-radius: 10px;
-            padding: 0.9rem 1.1rem;
-            margin: 0.6rem 0;
-        }
-        .boxed {
-            display: inline-block;
-            border: 2px solid var(--purple);
-            border-radius: 8px;
-            padding: 0.6rem 1rem;
-            font-family: 'Courier New', monospace;
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--purple);
-        }
-
-        .nav {
-            max-width: 980px;
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 1.2rem;
-        }
-        .nav-counter { color: var(--text-dim); font-size: 0.95rem; font-weight: 600; }
-
-        table.roteiro { border-collapse: collapse; margin-top: 0.6rem; width: 100%; }
-        table.roteiro th, table.roteiro td {
-            border: 1px solid var(--border); padding: 8px 12px; text-align: left; font-size: 0.95rem;
-        }
-        table.roteiro th { background: var(--bg3); color: var(--text-muted); }
-    </style>
+    .blocks { display: flex; flex-direction: column; gap: 2rem; max-width: 900px; width: 100%; }
+    .block-section { }
+    .block-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--purple);
+      margin-bottom: 1rem;
+      padding-left: 0.5rem;
+      border-left: 3px solid var(--purple);
+    }
+    .slides-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+    .slide-link {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      padding: 1.1rem 1.25rem;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 14px;
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.2s;
+      box-shadow: 0 1px 4px rgba(15,23,36,0.07);
+    }
+    .slide-link:hover {
+      border-color: var(--purple);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(91,33,182,0.12);
+    }
+    .sl-num { font-family: 'Fira Code', monospace; font-size: 0.7rem; color: var(--text-dim); }
+    .sl-icon { font-size: 1.5rem; }
+    .sl-title { font-size: 0.88rem; font-weight: 600; line-height: 1.3; color: var(--text); }
+    .sl-desc { font-size: 0.72rem; color: var(--text-muted); line-height: 1.4; }
+    .sl-tag {
+      align-self: flex-start;
+      padding: 0.15rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      background: rgba(91,33,182,0.08);
+      border: 1px solid rgba(91,33,182,0.2);
+      color: var(--purple);
+    }
+    footer {
+      margin-top: 3rem;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      text-align: center;
+      font-family: 'Fira Code', monospace;
+    }
+  </style>
 </head>
 <body>
-    <div class="deck">
-        <div class="badge">MDP · Retorno · Desconto</div>
+  <div class="hero">
+    <div class="badge">UFRGS · Aprendizado por Reforço</div>
+    <h1>MDP, Retorno e Desconto</h1>
+    <div style="font-family:'Fira Code',monospace;font-size:0.95rem;color:var(--text-dim);margin:0.5rem 0 0.7rem 0;">Prof. Anderson Rocha Tavares</div>
+    <p class="hero-sub">Slides interativos para a aula de Processos de Decisão de Markov (blocos 1 a 6 do roteiro). Navegue pelos blocos abaixo e clique em qualquer slide para abri-lo.</p>
+  </div>
 
-        <!-- Slide 1: Título / visão geral -->
-        <section class="slide active" data-block="0">
-            <h2>Processo de Decisão de Markov (MDP)</h2>
-            <p>Um agente precisa tomar decisões sequenciais. O resultado de uma ação depende do estado em que o agente está e pode haver incerteza.</p>
-            <p>Nesta aula vamos construir, de forma interativa, os conceitos de MDP, recompensa, retorno e desconto — sempre seguindo a sequência:</p>
-            <div class="question">experiência → observação → generalização → formalização matemática</div>
-            <table class="roteiro">
-                <tr><th>Bloco</th><th>Conceito</th><th>Interação principal</th></tr>
-                <tr><td>1</td><td>MDP</td><td>Explorar estados, ações e transições</td></tr>
-                <tr><td>2</td><td>Dinâmica</td><td>Clicar em uma ação e visualizar probabilidades</td></tr>
-                <tr><td>3</td><td>Recompensa × retorno</td><td>Acumular recompensas numa trajetória</td></tr>
-                <tr><td>4</td><td>Retorno</td><td>Calcular <code>Gt</code> passo a passo</td></tr>
-                <tr><td>5</td><td>Desconto</td><td>Slider de <code>γ</code></td></tr>
-                <tr><td>6</td><td>Recursividade</td><td>Transformar <code>Gt</code> em <code>Rt+1 + γGt+1</code></td></tr>
-            </table>
-        </section>
+  <div class="blocks">
 
-        <!-- Slide 2: Bloco 1 - componentes do MDP -->
-        <section class="slide" data-block="1">
-            <h2>Bloco 1 — Do problema de decisão ao modelo</h2>
-            <div class="question">O que precisamos especificar para descrever completamente esse problema?</div>
-            <div class="diagram">Estado
-   ↓
-Ação
-   ↓
-Ambiente
-   ↓
-Novo estado + recompensa</div>
-            <h3>Formalizando</h3>
-            <div class="diagram">S = conjunto de estados
-A = conjunto de ações
-R = conjunto de recompensas
-P = dinâmica (transição + recompensa esperada)</div>
-            <p>A dinâmica é apresentada em termos de: <strong>função/probabilidade de transição de estados</strong> e <strong>recompensa esperada</strong>.</p>
-        </section>
-
-        <!-- Slide 3: Bloco 1/2 interativo - Hungry/Eat -->
-        <section class="slide" data-block="1">
-            <h2>Bloco 1 — Explorar estados, ações e transições</h2>
-            <p>Estado atual:</p>
-            <div class="diagram">ESTADO ATUAL
-    [ Hungry ]</div>
-            <p>Escolha uma ação:</p>
-            <div class="btn-row">
-                <button class="btn" id="btn-eat" onclick="chooseEat()">Eat</button>
-                <button class="btn btn-secondary" id="btn-noeat" onclick="chooseNoEat()">Don't eat</button>
-            </div>
-            <div class="reveal" id="eat-tree">
-                <div class="diagram">                 ┌── Hungry   (p = 0.1)
-Eat ─────────────┤
-                 ├── Full     (p = 0.9)
-                 └── Starve   (p = 0.0)</div>
-                <div class="question">Se estou em <code>Hungry</code> e escolho <code>Eat</code>, qual é a probabilidade de terminar em <code>Full</code>?</div>
-                <div class="btn-row">
-                    <button class="btn" onclick="revealProb()">Revelar resposta</button>
-                </div>
-                <div class="reveal" id="eat-prob">
-                    <div class="step-eq">P(Full | Hungry, Eat) = 0.9</div>
-                </div>
-            </div>
-            <div class="reveal" id="noeat-tree">
-                <div class="diagram">                     ┌── Hungry   (p = 0.8)
-Don't eat ───────────┤
-                     ├── Full     (p = 0.0)
-                     └── Starve   (p = 0.2)</div>
-            </div>
-        </section>
-
-        <!-- Slide 4: Bloco 2 - Grid 4x3 -->
-        <section class="slide" data-block="2">
-            <h2>Bloco 2 — Dinâmica: Grid 4×3</h2>
-            <p>Clique em um estado e depois em uma ação para visualizar as transições, probabilidades e recompensas.</p>
-            <p>Regras: 80% de chance de seguir a direção pretendida; 10% para cada direção perpendicular; bater na parede mantém o agente no mesmo estado.</p>
-            <div id="grid" class="grid4x3"></div>
-            <p>Ação escolhida (a partir do estado selecionado):</p>
-            <div class="actions-row">
-                <button class="action-btn" onclick="chooseGridAction('up')">↑</button>
-                <button class="action-btn" onclick="chooseGridAction('down')">↓</button>
-                <button class="action-btn" onclick="chooseGridAction('left')">←</button>
-                <button class="action-btn" onclick="chooseGridAction('right')">→</button>
-            </div>
-            <div id="grid-result"></div>
-        </section>
-
-        <!-- Slide 5: Bloco 3 - transição para o retorno -->
-        <section class="slide" data-block="3">
-            <h2>Bloco 3 — Recompensa imediata é suficiente?</h2>
-            <div class="question">Se o agente recebe uma recompensa agora, isso é suficiente para dizer que uma ação foi boa?</div>
-            <h3>Trajetória A</h3>
-            <div class="diagram">s₀ → s₁ → s₂ → s₃
-     +10</div>
-            <h3>Trajetória B</h3>
-            <div class="diagram">s₀ → s₁ → s₂ → s₃
-     +1      +1    +1</div>
-            <div class="question">Qual situação é melhor?</div>
-            <p>Uma medida baseada somente na recompensa imediata é insuficiente para avaliar decisões sequenciais — precisamos olhar para o <strong>retorno</strong>, o acúmulo das recompensas futuras.</p>
-        </section>
-
-        <!-- Slide 6: Bloco 3/4 - acumular recompensas -->
-        <section class="slide" data-block="3">
-            <h2>Bloco 3 — Acumular recompensas numa trajetória</h2>
-            <div class="diagram">t        t+1     t+2     t+3     terminal
-│         │        │       │          │
-S₀ ─────→ S₁ ────→ S₂ ───→ S₃ ─────→ T
-          +2       -1      +5</div>
-            <div class="question">Se estou em <code>S₀</code>, quanto ganharei no total a partir daqui?</div>
-            <p>Clique nas recompensas, na ordem, para adicioná-las ao acumulador:</p>
-            <div id="reward-chips">
-                <span class="reward-chip pos" data-value="2" onclick="clickReward(this)">+2</span>
-                <span class="reward-chip neg" data-value="-1" onclick="clickReward(this)">-1</span>
-                <span class="reward-chip pos" data-value="5" onclick="clickReward(this)">+5</span>
-            </div>
-            <div class="accumulator" id="g0-accumulator">G₀ = 0</div>
-        </section>
-
-        <!-- Slide 7: Bloco 4 - retorno formalizado -->
-        <section class="slide" data-block="4">
-            <h2>Bloco 4 — Retorno</h2>
-            <p>Depois de acumular as recompensas passo a passo, formalizamos:</p>
-            <div class="diagram">RECOMPENSA
-   ↓
-um evento imediato
-
-RETORNO
-   ↓
-acúmulo das recompensas futuras</div>
-            <div class="step-eq">G₀ = 2 + (-1) + 5 = 6</div>
-            <p>De forma geral, o retorno a partir do instante <code>t</code> é a soma de todas as recompensas futuras:</p>
-            <div class="boxed">Gt = Rt+1 + Rt+2 + Rt+3 + ...</div>
-        </section>
-
-        <!-- Slide 8: Bloco 4/5 - problema do atraso -->
-        <section class="slide" data-block="4">
-            <h2>Bloco 4 — Retorno: o problema do atraso</h2>
-            <div class="diagram">                 +1000
-Ação A ────────────●
-s₁ → s₂ → s₃ → ... → s₁₀₀₀</div>
-            <div class="diagram">      +1000
-Ação B ──●
-s₁ → s₂</div>
-            <div class="question">Sem desconto, qual ação parece melhor?</div>
-            <p>Os retornos não descontados podem ser <strong>iguais</strong> (ambos somam 1000).</p>
-            <div class="question">Mas intuitivamente as duas opções parecem realmente equivalentes?</div>
-            <p>Isso motiva o <strong>desconto</strong> de recompensas futuras: receber a mesma recompensa mais cedo deveria valer mais.</p>
-        </section>
-
-        <!-- Slide 9: Bloco 5 - slider de gamma -->
-        <section class="slide" data-block="5">
-            <h2>Bloco 5 — Retorno descontado: interação com γ</h2>
-            <div class="boxed">Gt = Rt+1 + γRt+2 + γ²Rt+3 + γ³Rt+4 + ...</div>
-            <div class="diagram">             recompensa
-t ───── t+1 ─── t+2 ─── t+3 ─── t+4
-         +1       +1       +1      +10</div>
-            <div class="slider-row">
-                <span>γ</span>
-                <input type="range" id="gamma-slider" min="0" max="1" step="0.01" value="0.9" oninput="updateGamma(this.value)">
-                <span class="gamma-value" id="gamma-value">0.90</span>
-            </div>
-            <div class="step-eq" id="gamma-eq">G = 1 + 0.90×1 + 0.90²×1 + 0.90³×10</div>
-            <div class="accumulator" id="gamma-total">G = 12.421</div>
-            <table class="prob-table">
-                <tr><td>recompensa</td><td>peso</td></tr>
-                <tr><td>Rₜ₊₁</td><td>1</td></tr>
-                <tr><td>Rₜ₊₂</td><td>γ</td></tr>
-                <tr><td>Rₜ₊₃</td><td>γ²</td></tr>
-                <tr><td>Rₜ₊₄</td><td>γ³</td></tr>
-            </table>
-            <p id="gamma-hint" class="hint">As recompensas futuras perdem cada vez menos peso conforme γ se aproxima de 1.</p>
-        </section>
-
-        <!-- Slide 10: Bloco 6 - recursividade -->
-        <section class="slide" data-block="6">
-            <h2>Bloco 6 — Retorno: formulação recursiva</h2>
-            <p>Depois de entender o retorno como soma descontada, vamos derivar a sua forma recursiva passo a passo.</p>
-            <div class="btn-row">
-                <button class="btn" id="btn-step" onclick="nextRecursionStep()">Próximo passo</button>
-                <button class="btn btn-secondary" onclick="resetRecursion()">Reiniciar</button>
-            </div>
-            <div class="step-eq" id="rec-step-0">Gt = Rt+1 + γRt+2 + γ²Rt+3 + γ³Rt+4 + ...</div>
-            <div class="reveal" id="rec-step-1">
-                <div class="question">O que está dentro dos parênteses, se destacarmos tudo depois de Rt+1?</div>
-                <div class="step-eq">Gt = Rt+1 + γ(Rt+2 + γRt+3 + γ²Rt+4 + ...)</div>
-            </div>
-            <div class="reveal" id="rec-step-2">
-                <div class="step-eq">Gt+1 = Rt+2 + γRt+3 + γ²Rt+4 + ...</div>
-            </div>
-            <div class="reveal" id="rec-step-3">
-                <p>Portanto:</p>
-                <div class="boxed">Gt = Rt+1 + γGt+1</div>
-            </div>
-        </section>
+    <!-- Bloco 1 -->
+    <div class="block-section">
+      <div class="block-title">Bloco 1 — MDP</div>
+      <div class="slides-grid">
+        <a href="slide01.html" class="slide-link">
+          <div class="sl-num">Slide 01</div>
+          <div class="sl-icon">🧩</div>
+          <div class="sl-title">Do problema de decisão ao modelo</div>
+          <div class="sl-desc">Progressão Estado → Ação → Ambiente → Recompensa e formalização de S, A, R e P.</div>
+          <div class="sl-tag">conceitual</div>
+        </a>
+        <a href="slide02.html" class="slide-link">
+          <div class="sl-num">Slide 02</div>
+          <div class="sl-icon">🍽️</div>
+          <div class="sl-title">Explorar estados, ações e transições</div>
+          <div class="sl-desc">Exemplo Hungry/Eat — clique em uma ação e revele a árvore de transições e probabilidades.</div>
+          <div class="sl-tag">interativo</div>
+        </a>
+      </div>
     </div>
 
-    <div class="nav">
-        <button class="btn btn-secondary" id="prev-btn" onclick="changeSlide(-1)">← Anterior</button>
-        <span class="nav-counter" id="slide-counter"></span>
-        <button class="btn" id="next-btn" onclick="changeSlide(1)">Próximo →</button>
+    <!-- Bloco 2 -->
+    <div class="block-section">
+      <div class="block-title">Bloco 2 — Dinâmica</div>
+      <div class="slides-grid">
+        <a href="slide03.html" class="slide-link">
+          <div class="sl-num">Slide 03</div>
+          <div class="sl-icon">🗺️</div>
+          <div class="sl-title">Dinâmica: Grid 4×3</div>
+          <div class="sl-desc">Clique em um estado e em uma ação para visualizar as probabilidades de transição no grid 4×3.</div>
+          <div class="sl-tag">interativo</div>
+        </a>
+      </div>
     </div>
 
-    <script>
-    // ---------- Navegação entre slides ----------
-    const slides = document.querySelectorAll('.slide');
-    let current = 0;
+    <!-- Bloco 3 -->
+    <div class="block-section">
+      <div class="block-title">Bloco 3 — Recompensa × retorno</div>
+      <div class="slides-grid">
+        <a href="slide04.html" class="slide-link">
+          <div class="sl-num">Slide 04</div>
+          <div class="sl-icon">⚖️</div>
+          <div class="sl-title">Recompensa imediata é suficiente?</div>
+          <div class="sl-desc">Comparação entre duas trajetórias para motivar a necessidade do retorno.</div>
+          <div class="sl-tag">conceitual</div>
+        </a>
+        <a href="slide05.html" class="slide-link">
+          <div class="sl-num">Slide 05</div>
+          <div class="sl-icon">➕</div>
+          <div class="sl-title">Acumular recompensas numa trajetória</div>
+          <div class="sl-desc">Clique nas recompensas de uma trajetória para construir G₀ passo a passo.</div>
+          <div class="sl-tag">interativo</div>
+        </a>
+      </div>
+    </div>
 
-    function showSlide(index) {
-        slides.forEach((s, i) => s.classList.toggle('active', i === index));
-        document.getElementById('slide-counter').innerText = `${index + 1} / ${slides.length}`;
-        document.getElementById('prev-btn').disabled = index === 0;
-        document.getElementById('next-btn').disabled = index === slides.length - 1;
-    }
+    <!-- Bloco 4 -->
+    <div class="block-section">
+      <div class="block-title">Bloco 4 — Retorno</div>
+      <div class="slides-grid">
+        <a href="slide06.html" class="slide-link">
+          <div class="sl-num">Slide 06</div>
+          <div class="sl-icon">📐</div>
+          <div class="sl-title">Retorno</div>
+          <div class="sl-desc">Formaliza o retorno Gt como soma das recompensas futuras.</div>
+          <div class="sl-tag">conceitual</div>
+        </a>
+        <a href="slide07.html" class="slide-link">
+          <div class="sl-num">Slide 07</div>
+          <div class="sl-icon">⏳</div>
+          <div class="sl-title">Retorno: o problema do atraso</div>
+          <div class="sl-desc">Duas ações com o mesmo retorno não descontado, motivando o fator de desconto γ.</div>
+          <div class="sl-tag">conceitual</div>
+        </a>
+      </div>
+    </div>
 
-    function changeSlide(delta) {
-        const target = current + delta;
-        if (target < 0 || target >= slides.length) return;
-        current = target;
-        showSlide(current);
-    }
+    <!-- Bloco 5 -->
+    <div class="block-section">
+      <div class="block-title">Bloco 5 — Desconto</div>
+      <div class="slides-grid">
+        <a href="slide08.html" class="slide-link">
+          <div class="sl-num">Slide 08</div>
+          <div class="sl-icon">🎚️</div>
+          <div class="sl-title">Retorno descontado: interação com γ</div>
+          <div class="sl-desc">Slider de γ que recalcula o retorno descontado em tempo real, com dicas em γ=0 e γ=1.</div>
+          <div class="sl-tag">interativo</div>
+        </a>
+      </div>
+    </div>
 
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowRight') changeSlide(1);
-        if (e.key === 'ArrowLeft') changeSlide(-1);
-    });
+    <!-- Bloco 6 -->
+    <div class="block-section">
+      <div class="block-title">Bloco 6 — Recursividade</div>
+      <div class="slides-grid">
+        <a href="slide09.html" class="slide-link">
+          <div class="sl-num">Slide 09</div>
+          <div class="sl-icon">🔁</div>
+          <div class="sl-title">Retorno: formulação recursiva</div>
+          <div class="sl-desc">Derivação passo a passo transformando Gt em Rt+1 + γGt+1.</div>
+          <div class="sl-tag">interativo</div>
+        </a>
+      </div>
+    </div>
 
-    showSlide(current);
+  </div>
 
-    // ---------- Bloco 1: Hungry / Eat ----------
-    function chooseEat() {
-        document.getElementById('eat-tree').classList.add('shown');
-        document.getElementById('noeat-tree').classList.remove('shown');
-    }
-    function chooseNoEat() {
-        document.getElementById('noeat-tree').classList.add('shown');
-        document.getElementById('eat-tree').classList.remove('shown');
-    }
-    function revealProb() {
-        document.getElementById('eat-prob').classList.add('shown');
-    }
-
-    // ---------- Bloco 2: Grid 4x3 ----------
-    // Linha 0 é o topo (y=3), linha 2 é a base (y=1), seguindo a convenção do grid 4x3 clássico.
-    const gridLayout = [
-        [null, null, null, 'goal'],
-        [null, 'wall', null, 'pit'],
-        [null, null, null, null]
-    ];
-    let selectedCell = null;
-
-    function buildGrid() {
-        const grid = document.getElementById('grid');
-        grid.innerHTML = '';
-        for (let row = 0; row < 3; row++) {
-            for (let col = 0; col < 4; col++) {
-                const type = gridLayout[row][col];
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.dataset.row = row;
-                cell.dataset.col = col;
-                if (type === 'wall') {
-                    cell.classList.add('wall');
-                    cell.innerText = '■';
-                } else if (type === 'goal') {
-                    cell.classList.add('goal');
-                    cell.innerText = '+1';
-                } else if (type === 'pit') {
-                    cell.classList.add('pit');
-                    cell.innerText = '-1';
-                } else {
-                    cell.innerText = '-0.04';
-                    cell.onclick = () => selectCell(row, col);
-                }
-                grid.appendChild(cell);
-            }
-        }
-    }
-
-    function selectCell(row, col) {
-        document.querySelectorAll('.cell').forEach(c => c.classList.remove('selected', 'target'));
-        const cell = document.querySelector(`.cell[data-row='${row}'][data-col='${col}']`);
-        cell.classList.add('selected');
-        selectedCell = { row, col };
-        document.getElementById('grid-result').innerHTML = '';
-    }
-
-    const directionDeltas = {
-        up:    { row: -1, col: 0 },
-        down:  { row: 1,  col: 0 },
-        left:  { row: 0,  col: -1 },
-        right: { row: 0,  col: 1 }
-    };
-    const perpendicular = {
-        up: ['left', 'right'],
-        down: ['left', 'right'],
-        left: ['up', 'down'],
-        right: ['up', 'down']
-    };
-
-    function moveResult(row, col, direction) {
-        const d = directionDeltas[direction];
-        const newRow = row + d.row;
-        const newCol = col + d.col;
-        if (newRow < 0 || newRow > 2 || newCol < 0 || newCol > 3 || gridLayout[newRow][newCol] === 'wall') {
-            return { row, col };
-        }
-        return { row: newRow, col: newCol };
-    }
-
-    function cellLabel(row, col) {
-        // Converte para a notação [x,y] com y crescendo de baixo para cima.
-        const x = col + 1;
-        const y = 3 - row;
-        return `[${x},${y}]`;
-    }
-
-    function chooseGridAction(direction) {
-        if (!selectedCell) {
-            document.getElementById('grid-result').innerHTML = '<p class="question">Selecione um estado no grid primeiro.</p>';
-            return;
-        }
-        const { row, col } = selectedCell;
-        const main = moveResult(row, col, direction);
-        const [perp1, perp2] = perpendicular[direction];
-        const side1 = moveResult(row, col, perp1);
-        const side2 = moveResult(row, col, perp2);
-
-        document.querySelectorAll('.cell').forEach(c => c.classList.remove('target'));
-        [main, side1, side2].forEach(c => {
-            document.querySelector(`.cell[data-row='${c.row}'][data-col='${c.col}']`).classList.add('target');
-        });
-
-        const from = cellLabel(row, col);
-        const arrow = { up: '↑', down: '↓', left: '←', right: '→' }[direction];
-
-        // Agrega a probabilidade quando destinos coincidem (ex.: paredes empurrando de volta ao mesmo estado).
-        const outcomes = new Map();
-        [[main, 0.8], [side1, 0.1], [side2, 0.1]].forEach(([c, p]) => {
-            const key = `${c.row},${c.col}`;
-            outcomes.set(key, (outcomes.get(key) || 0) + p);
-        });
-
-        const lines = Array.from(outcomes.entries()).map(([key, p]) => {
-            const [r, c] = key.split(',').map(Number);
-            return `<div class="step-eq">P(${cellLabel(r, c)} | ${from}, ${arrow}) = ${p.toFixed(1)}</div>`;
-        });
-        document.getElementById('grid-result').innerHTML = lines.join('\n');
-    }
-
-    buildGrid();
-
-    // ---------- Bloco 3: acumular recompensas ----------
-    let g0 = 0;
-    function clickReward(el) {
-        if (el.classList.contains('used')) return;
-        g0 += Number(el.dataset.value);
-        el.classList.add('used');
-        document.getElementById('g0-accumulator').innerText = `G₀ = ${g0}`;
-    }
-
-    // ---------- Bloco 5: slider de gamma ----------
-    const rewards = [1, 1, 1, 10];
-    function updateGamma(value) {
-        const gamma = Number(value);
-        document.getElementById('gamma-value').innerText = gamma.toFixed(2);
-
-        const terms = rewards.map((r, k) => {
-            const coef = k === 0 ? '1' : k === 1 ? gamma.toFixed(2) : `${gamma.toFixed(2)}^${k}`;
-            return `${coef}×${r}`;
-        });
-        document.getElementById('gamma-eq').innerText = `G = ${terms.join(' + ')}`;
-
-        const total = rewards.reduce((sum, r, k) => sum + Math.pow(gamma, k) * r, 0);
-        document.getElementById('gamma-total').innerText = `G = ${total.toFixed(3)}`;
-
-        const hint = document.getElementById('gamma-hint');
-        if (gamma === 0) {
-            hint.innerText = 'γ = 0: só importa a próxima recompensa.';
-        } else if (gamma === 1) {
-            hint.innerText = 'γ = 1: todas as recompensas futuras têm o mesmo peso da recompensa imediata.';
-        } else {
-            hint.innerText = 'As recompensas futuras perdem cada vez menos peso conforme γ se aproxima de 1.';
-        }
-    }
-    updateGamma(document.getElementById('gamma-slider').value);
-
-    // ---------- Bloco 6: recursividade ----------
-    let recursionStep = 0;
-    const recursionSteps = ['rec-step-1', 'rec-step-2', 'rec-step-3'];
-    function nextRecursionStep() {
-        if (recursionStep >= recursionSteps.length) return;
-        document.getElementById(recursionSteps[recursionStep]).classList.add('shown');
-        recursionStep++;
-        document.getElementById('btn-step').disabled = recursionStep >= recursionSteps.length;
-    }
-    function resetRecursion() {
-        recursionSteps.forEach(id => document.getElementById(id).classList.remove('shown'));
-        recursionStep = 0;
-        document.getElementById('btn-step').disabled = false;
-    }
-    </script>
+  <footer style="font-size:0.85rem;color:var(--text-muted);">
+    UFRGS · Curso de Aprendizado por Reforço · Slides vibe-codados com ❤️
+  </footer>
 </body>
 </html>
