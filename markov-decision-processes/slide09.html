@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Slide 09 – Retorno: formulação recursiva</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .step-eq {
+      font-size: 1.1rem;
+      font-family: 'Fira Code', monospace;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 0.8rem 1.1rem;
+      text-align: center;
+    }
+    .boxed {
+      display: inline-block;
+      border: 2px solid var(--purple);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 1.1rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--purple);
+    }
+    .boxed-wrap { text-align: center; }
+    .reveal { display: none; }
+    .reveal.shown { display: block; }
+    .toggle-section { display: flex; justify-content: center; gap: 0.6rem; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <header class="slide-header">
+      <span class="course-tag">MDP</span>
+      <span style="font-family:'Fira Code',monospace;font-size:0.85rem;color:var(--text-dim);font-weight:600;flex:1;text-align:center;">Prof. Anderson Rocha Tavares</span>
+      <span class="slide-counter">Bloco 6 · Slide 9 / 9</span>
+      <a class="back-link" href="index.html">Índice ⊞</a>
+    </header>
+
+    <main class="slide-main">
+      <div class="title-block">
+        <h1 class="slide-title">Retorno: formulação recursiva</h1>
+        <p class="slide-subtitle">Bloco 6 — Recursividade</p>
+      </div>
+
+      <p class="key-message">Depois de entender o retorno como soma descontada, vamos derivar a sua forma recursiva passo a passo.</p>
+
+      <div class="toggle-section">
+        <button class="btn-toggle" id="btn-step" onclick="nextRecursionStep()">Próximo passo</button>
+        <button class="btn-toggle" onclick="resetRecursion()">Reiniciar</button>
+      </div>
+
+      <div class="step-eq" id="rec-step-0">Gt = Rt+1 + γRt+2 + γ²Rt+3 + γ³Rt+4 + ...</div>
+
+      <div class="reveal" id="rec-step-1">
+        <div class="highlight-box purple">
+          <span class="icon">❓</span>
+          <span>O que está dentro dos parênteses, se destacarmos tudo depois de Rt+1?</span>
+        </div>
+        <div class="step-eq">Gt = Rt+1 + γ(Rt+2 + γRt+3 + γ²Rt+4 + ...)</div>
+      </div>
+
+      <div class="reveal" id="rec-step-2">
+        <div class="step-eq">Gt+1 = Rt+2 + γRt+3 + γ²Rt+4 + ...</div>
+      </div>
+
+      <div class="reveal" id="rec-step-3">
+        <p class="key-message">Portanto:</p>
+        <div class="boxed-wrap">
+          <div class="boxed">Gt = Rt+1 + γGt+1</div>
+        </div>
+      </div>
+    </main>
+
+    <nav class="slide-nav">
+      <button class="btn-nav btn-prev" onclick="location.href='slide08.html'">← Anterior</button>
+      <div class="nav-dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot active"></div>
+      </div>
+      <a class="btn-nav btn-next" href="index.html">Fim →</a>
+    </nav>
+  </div>
+
+  <script>
+    let recursionStep = 0;
+    const recursionSteps = ['rec-step-1', 'rec-step-2', 'rec-step-3'];
+    function nextRecursionStep() {
+        if (recursionStep >= recursionSteps.length) return;
+        document.getElementById(recursionSteps[recursionStep]).classList.add('shown');
+        recursionStep++;
+        document.getElementById('btn-step').disabled = recursionStep >= recursionSteps.length;
+    }
+    function resetRecursion() {
+        recursionSteps.forEach(id => document.getElementById(id).classList.remove('shown'));
+        recursionStep = 0;
+        document.getElementById('btn-step').disabled = false;
+    }
+  </script>
+</body>
+</html>

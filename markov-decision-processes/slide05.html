@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Slide 05 – Acumular recompensas numa trajetória</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .diagram {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.2rem;
+      font-family: 'Fira Code', monospace;
+      white-space: pre;
+      overflow-x: auto;
+      font-size: 0.92rem;
+      color: var(--text);
+    }
+    .reward-chips { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+    .reward-chip {
+      display: inline-block;
+      padding: 0.5rem 1.1rem;
+      border-radius: 8px;
+      font-weight: 700;
+      font-family: 'Fira Code', monospace;
+      cursor: pointer;
+      border: 1.5px solid var(--border2);
+      background: var(--bg2);
+      transition: transform 0.1s;
+    }
+    .reward-chip:hover { transform: translateY(-2px); }
+    .reward-chip.used { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .reward-chip.pos { color: var(--green); }
+    .reward-chip.neg { color: #991b1b; }
+    .accumulator {
+      font-family: 'Fira Code', monospace;
+      font-size: 1.3rem;
+      font-weight: 700;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <header class="slide-header">
+      <span class="course-tag">MDP</span>
+      <span style="font-family:'Fira Code',monospace;font-size:0.85rem;color:var(--text-dim);font-weight:600;flex:1;text-align:center;">Prof. Anderson Rocha Tavares</span>
+      <span class="slide-counter">Bloco 3 · Slide 5 / 9</span>
+      <a class="back-link" href="index.html">Índice ⊞</a>
+    </header>
+
+    <main class="slide-main">
+      <div class="title-block">
+        <h1 class="slide-title">Acumular recompensas numa trajetória</h1>
+        <p class="slide-subtitle">Bloco 3 — Recompensa × retorno</p>
+      </div>
+
+      <div class="panel" style="align-items:center;">
+        <span class="panel-title" style="align-self:flex-start;">Trajetória</span>
+        <div class="diagram">t        t+1     t+2     t+3     terminal
+│         │        │       │          │
+S₀ ─────→ S₁ ────→ S₂ ───→ S₃ ─────→ T
+          +2       -1      +5</div>
+      </div>
+
+      <div class="highlight-box purple">
+        <span class="icon">🤔</span>
+        <span>Se estou em <code>S₀</code>, quanto ganharei no total a partir daqui?</span>
+      </div>
+
+      <p class="key-message">Clique nas recompensas, na ordem, para adicioná-las ao acumulador:</p>
+
+      <div class="reward-chips" id="reward-chips">
+        <span class="reward-chip pos" data-value="2" onclick="clickReward(this)">+2</span>
+        <span class="reward-chip neg" data-value="-1" onclick="clickReward(this)">-1</span>
+        <span class="reward-chip pos" data-value="5" onclick="clickReward(this)">+5</span>
+      </div>
+
+      <div class="accumulator" id="g0-accumulator">G₀ = 0</div>
+    </main>
+
+    <nav class="slide-nav">
+      <button class="btn-nav btn-prev" onclick="location.href='slide04.html'">← Anterior</button>
+      <div class="nav-dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <button class="btn-nav btn-next" onclick="location.href='slide06.html'">Próximo →</button>
+    </nav>
+  </div>
+
+  <script>
+    let g0 = 0;
+    function clickReward(el) {
+        if (el.classList.contains('used')) return;
+        g0 += Number(el.dataset.value);
+        el.classList.add('used');
+        document.getElementById('g0-accumulator').innerText = `G₀ = ${g0}`;
+    }
+  </script>
+</body>
+</html>

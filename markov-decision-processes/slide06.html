@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Slide 06 – Retorno</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .diagram {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.2rem;
+      font-family: 'Fira Code', monospace;
+      white-space: pre;
+      overflow-x: auto;
+      font-size: 0.92rem;
+      color: var(--text);
+    }
+    .step-eq {
+      font-size: 1.1rem;
+      font-family: 'Fira Code', monospace;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 0.8rem 1.1rem;
+      text-align: center;
+    }
+    .boxed {
+      display: inline-block;
+      border: 2px solid var(--purple);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 1.1rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--purple);
+    }
+    .boxed-wrap { text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <header class="slide-header">
+      <span class="course-tag">MDP</span>
+      <span style="font-family:'Fira Code',monospace;font-size:0.85rem;color:var(--text-dim);font-weight:600;flex:1;text-align:center;">Prof. Anderson Rocha Tavares</span>
+      <span class="slide-counter">Bloco 4 · Slide 6 / 9</span>
+      <a class="back-link" href="index.html">Índice ⊞</a>
+    </header>
+
+    <main class="slide-main">
+      <div class="title-block">
+        <h1 class="slide-title">Retorno</h1>
+        <p class="slide-subtitle">Bloco 4 — Retorno</p>
+      </div>
+
+      <p class="key-message">Depois de acumular as recompensas passo a passo, formalizamos:</p>
+
+      <div class="panel">
+        <div class="diagram">RECOMPENSA
+   ↓
+um evento imediato
+
+RETORNO
+   ↓
+acúmulo das recompensas futuras</div>
+      </div>
+
+      <div class="step-eq">G₀ = 2 + (-1) + 5 = 6</div>
+
+      <p class="key-message">De forma geral, o retorno a partir do instante <code>t</code> é a soma de todas as recompensas futuras:</p>
+
+      <div class="boxed-wrap">
+        <div class="boxed">Gt = Rt+1 + Rt+2 + Rt+3 + ...</div>
+      </div>
+    </main>
+
+    <nav class="slide-nav">
+      <button class="btn-nav btn-prev" onclick="location.href='slide05.html'">← Anterior</button>
+      <div class="nav-dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <button class="btn-nav btn-next" onclick="location.href='slide07.html'">Próximo →</button>
+    </nav>
+  </div>
+</body>
+</html>

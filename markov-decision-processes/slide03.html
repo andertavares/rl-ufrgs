@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Slide 03 – Dinâmica: Grid 4×3</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .step-eq {
+      font-size: 1.05rem;
+      font-family: 'Fira Code', monospace;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 0.7rem 1rem;
+      text-align: center;
+    }
+    .grid4x3 {
+      display: grid;
+      grid-template-columns: repeat(4, 76px);
+      grid-template-rows: repeat(3, 60px);
+      gap: 6px;
+      justify-content: center;
+    }
+    .cell {
+      border: 1.5px solid var(--border2);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--bg2);
+      color: var(--text-dim);
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .cell:hover { border-color: var(--purple); }
+    .cell.selected { border-color: var(--purple); box-shadow: 0 0 0 2px var(--purple-lt); color: var(--text); }
+    .cell.wall { background: #d9dde6; cursor: not-allowed; }
+    .cell.goal { background: var(--green-lt); color: var(--green); }
+    .cell.pit { background: #fee2e2; color: #991b1b; }
+    .cell.target { outline: 3px solid var(--orange); }
+    .actions-row { display: flex; gap: 0.6rem; justify-content: center; }
+    .action-btn {
+      width: 52px; height: 44px; font-size: 1.2rem; font-weight: 700;
+      border-radius: 8px; border: 1.5px solid var(--border2); background: var(--bg2);
+      cursor: pointer;
+    }
+    .action-btn:hover { border-color: var(--purple); }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <header class="slide-header">
+      <span class="course-tag">MDP</span>
+      <span style="font-family:'Fira Code',monospace;font-size:0.85rem;color:var(--text-dim);font-weight:600;flex:1;text-align:center;">Prof. Anderson Rocha Tavares</span>
+      <span class="slide-counter">Bloco 2 · Slide 3 / 9</span>
+      <a class="back-link" href="index.html">Índice ⊞</a>
+    </header>
+
+    <main class="slide-main">
+      <div class="title-block">
+        <h1 class="slide-title">Dinâmica: Grid 4×3</h1>
+        <p class="slide-subtitle">Bloco 2 — Dinâmica</p>
+      </div>
+
+      <p class="key-message">
+        Clique em um estado e depois em uma ação para visualizar as transições, probabilidades e recompensas.
+        80% de chance de seguir a direção pretendida; 10% para cada direção perpendicular; bater na parede mantém o agente no mesmo estado.
+      </p>
+
+      <div class="panel" style="align-items:center;">
+        <span class="panel-title" style="align-self:flex-start;">Estado + Ação</span>
+        <div id="grid" class="grid4x3"></div>
+        <div class="actions-row">
+          <button class="action-btn" onclick="chooseGridAction('up')">↑</button>
+          <button class="action-btn" onclick="chooseGridAction('down')">↓</button>
+          <button class="action-btn" onclick="chooseGridAction('left')">←</button>
+          <button class="action-btn" onclick="chooseGridAction('right')">→</button>
+        </div>
+        <div id="grid-result" style="width:100%; display:flex; flex-direction:column; gap:0.4rem;"></div>
+      </div>
+    </main>
+
+    <nav class="slide-nav">
+      <button class="btn-nav btn-prev" onclick="location.href='slide02.html'">← Anterior</button>
+      <div class="nav-dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <button class="btn-nav btn-next" onclick="location.href='slide04.html'">Próximo →</button>
+    </nav>
+  </div>
+
+  <script>
+    // Linha 0 é o topo (y=3), linha 2 é a base (y=1), seguindo a convenção do grid 4x3 clássico.
+    const gridLayout = [
+        [null, null, null, 'goal'],
+        [null, 'wall', null, 'pit'],
+        [null, null, null, null]
+    ];
+    let selectedCell = null;
+
+    function buildGrid() {
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        for (let row = 0; row < 3; row++) {
+            for (let col = 0; col < 4; col++) {
+                const type = gridLayout[row][col];
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.row = row;
+                cell.dataset.col = col;
+                if (type === 'wall') {
+                    cell.classList.add('wall');
+                    cell.innerText = '■';
+                } else if (type === 'goal') {
+                    cell.classList.add('goal');
+                    cell.innerText = '+1';
+                } else if (type === 'pit') {
+                    cell.classList.add('pit');
+                    cell.innerText = '-1';
+                } else {
+                    cell.innerText = '-0.04';
+                    cell.onclick = () => selectCell(row, col);
+                }
+                grid.appendChild(cell);
+            }
+        }
+    }
+
+    function selectCell(row, col) {
+        document.querySelectorAll('.cell').forEach(c => c.classList.remove('selected', 'target'));
+        const cell = document.querySelector(`.cell[data-row='${row}'][data-col='${col}']`);
+        cell.classList.add('selected');
+        selectedCell = { row, col };
+        document.getElementById('grid-result').innerHTML = '';
+    }
+
+    const directionDeltas = {
+        up:    { row: -1, col: 0 },
+        down:  { row: 1,  col: 0 },
+        left:  { row: 0,  col: -1 },
+        right: { row: 0,  col: 1 }
+    };
+    const perpendicular = {
+        up: ['left', 'right'],
+        down: ['left', 'right'],
+        left: ['up', 'down'],
+        right: ['up', 'down']
+    };
+
+    function moveResult(row, col, direction) {
+        const d = directionDeltas[direction];
+        const newRow = row + d.row;
+        const newCol = col + d.col;
+        if (newRow < 0 || newRow > 2 || newCol < 0 || newCol > 3 || gridLayout[newRow][newCol] === 'wall') {
+            return { row, col };
+        }
+        return { row: newRow, col: newCol };
+    }
+
+    function cellLabel(row, col) {
+        // Converte para a notação [x,y] com y crescendo de baixo para cima.
+        const x = col + 1;
+        const y = 3 - row;
+        return `[${x},${y}]`;
+    }
+
+    function chooseGridAction(direction) {
+        if (!selectedCell) {
+            document.getElementById('grid-result').innerHTML = '<div class="highlight-box orange"><span class="icon">⚠️</span><span>Selecione um estado no grid primeiro.</span></div>';
+            return;
+        }
+        const { row, col } = selectedCell;
+        const main = moveResult(row, col, direction);
+        const [perp1, perp2] = perpendicular[direction];
+        const side1 = moveResult(row, col, perp1);
+        const side2 = moveResult(row, col, perp2);
+
+        document.querySelectorAll('.cell').forEach(c => c.classList.remove('target'));
+        [main, side1, side2].forEach(c => {
+            document.querySelector(`.cell[data-row='${c.row}'][data-col='${c.col}']`).classList.add('target');
+        });
+
+        const from = cellLabel(row, col);
+        const arrow = { up: '↑', down: '↓', left: '←', right: '→' }[direction];
+
+        // Agrega a probabilidade quando destinos coincidem (ex.: paredes empurrando de volta ao mesmo estado).
+        const outcomes = new Map();
+        [[main, 0.8], [side1, 0.1], [side2, 0.1]].forEach(([c, p]) => {
+            const key = `${c.row},${c.col}`;
+            outcomes.set(key, (outcomes.get(key) || 0) + p);
+        });
+
+        const lines = Array.from(outcomes.entries()).map(([key, p]) => {
+            const [r, c] = key.split(',').map(Number);
+            return `<div class="step-eq">P(${cellLabel(r, c)} | ${from}, ${arrow}) = ${p.toFixed(1)}</div>`;
+        });
+        document.getElementById('grid-result').innerHTML = lines.join('\n');
+    }
+
+    buildGrid();
+  </script>
+</body>
+</html>

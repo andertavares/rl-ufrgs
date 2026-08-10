@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Slide 04 – Recompensa imediata é suficiente?</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .diagram {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.2rem;
+      font-family: 'Fira Code', monospace;
+      white-space: pre;
+      overflow-x: auto;
+      font-size: 0.92rem;
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <header class="slide-header">
+      <span class="course-tag">MDP</span>
+      <span style="font-family:'Fira Code',monospace;font-size:0.85rem;color:var(--text-dim);font-weight:600;flex:1;text-align:center;">Prof. Anderson Rocha Tavares</span>
+      <span class="slide-counter">Bloco 3 · Slide 4 / 9</span>
+      <a class="back-link" href="index.html">Índice ⊞</a>
+    </header>
+
+    <main class="slide-main">
+      <div class="title-block">
+        <h1 class="slide-title">Recompensa imediata é suficiente?</h1>
+        <p class="slide-subtitle">Bloco 3 — Recompensa × retorno</p>
+      </div>
+
+      <div class="highlight-box purple">
+        <span class="icon">🤔</span>
+        <span>Se o agente recebe uma recompensa agora, isso é suficiente para dizer que uma ação foi boa?</span>
+      </div>
+
+      <div class="panel">
+        <span class="panel-title">Trajetória A</span>
+        <div class="diagram">s₀ → s₁ → s₂ → s₃
+     +10</div>
+      </div>
+
+      <div class="panel">
+        <span class="panel-title">Trajetória B</span>
+        <div class="diagram">s₀ → s₁ → s₂ → s₃
+     +1      +1    +1</div>
+      </div>
+
+      <div class="highlight-box purple">
+        <span class="icon">❓</span>
+        <span>Qual situação é melhor?</span>
+      </div>
+
+      <p class="key-message">
+        Uma medida baseada somente na recompensa imediata é insuficiente para avaliar decisões sequenciais — precisamos olhar para o <strong>retorno</strong>, o acúmulo das recompensas futuras.
+      </p>
+    </main>
+
+    <nav class="slide-nav">
+      <button class="btn-nav btn-prev" onclick="location.href='slide03.html'">← Anterior</button>
+      <div class="nav-dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <button class="btn-nav btn-next" onclick="location.href='slide05.html'">Próximo →</button>
+    </nav>
+  </div>
+</body>
+</html>

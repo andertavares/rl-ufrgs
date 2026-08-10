@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Slide 01 – Do problema de decisão ao modelo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .diagram {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.2rem;
+      font-family: 'Fira Code', monospace;
+      white-space: pre;
+      overflow-x: auto;
+      font-size: 0.92rem;
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <header class="slide-header">
+      <span class="course-tag">MDP</span>
+      <span style="font-family:'Fira Code',monospace;font-size:0.85rem;color:var(--text-dim);font-weight:600;flex:1;text-align:center;">Prof. Anderson Rocha Tavares</span>
+      <span class="slide-counter">Bloco 1 · Slide 1 / 9</span>
+      <a class="back-link" href="index.html">Índice ⊞</a>
+    </header>
+
+    <main class="slide-main">
+      <div class="title-block">
+        <h1 class="slide-title">Do problema de decisão ao modelo</h1>
+        <p class="slide-subtitle">Bloco 1 — MDP</p>
+      </div>
+
+      <p class="key-message">
+        Um agente precisa tomar decisões sequenciais. O resultado de uma ação depende do estado em que o agente está e pode haver incerteza.
+      </p>
+
+      <div class="highlight-box purple">
+        <span class="icon">🤔</span>
+        <span><strong>Pergunta guia:</strong> O que precisamos especificar para descrever completamente esse problema?</span>
+      </div>
+
+      <div class="panel">
+        <span class="panel-title">Progressão do problema</span>
+        <div class="diagram">Estado
+   ↓
+Ação
+   ↓
+Ambiente
+   ↓
+Novo estado + recompensa</div>
+      </div>
+
+      <div class="panel">
+        <span class="panel-title">Formalização</span>
+        <div class="diagram">S = conjunto de estados
+A = conjunto de ações
+R = conjunto de recompensas
+P = dinâmica (transição + recompensa esperada)</div>
+        <p style="font-size:0.9rem;">
+          A dinâmica é apresentada em termos de <strong>função/probabilidade de transição de estados</strong> e <strong>recompensa esperada</strong>.
+        </p>
+      </div>
+    </main>
+
+    <nav class="slide-nav">
+      <button class="btn-nav btn-prev" disabled>← Anterior</button>
+      <div class="nav-dots">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <button class="btn-nav btn-next" onclick="location.href='slide02.html'">Próximo →</button>
+    </nav>
+  </div>
+</body>
+</html>
