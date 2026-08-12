@@ -1,0 +1,1250 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+<meta charset="UTF-8">
+<title>Editor de MDP (Grafo) — v8</title>
+<style>
+  * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+  body { margin: 0; height: 100vh; display: flex; flex-direction: column; }
+
+  header {
+    background: #2c3e50; color: #fff; padding: 10px 16px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  header h1 { font-size: 18px; margin: 0; margin-right: 20px; }
+  header .info { font-size: 12px; color: #cfd8e3; width: 100%; margin-top: 6px; line-height: 1.6; }
+  header .info b { color: #fff; }
+  header kbd {
+    background: #34495e; padding: 1px 6px; border-radius: 3px; font-size: 11px; color: #fff;
+  }
+
+  button {
+    cursor: pointer; border: 1px solid #ccc; background: #fff; padding: 6px 10px;
+    border-radius: 4px; font-size: 13px;
+  }
+  button:hover { background: #f0f0f0; }
+  .btn-primary { background: #27ae60; color: #fff; border-color: #27ae60; }
+  .btn-primary:hover { background: #219150; }
+  .btn-danger { background: #e74c3c; color: #fff; border-color: #e74c3c; }
+  .btn-danger:hover { background: #c0392b; }
+  .btn-small { padding: 2px 6px; font-size: 12px; }
+
+  #main { flex: 1; display: flex; overflow: hidden; }
+
+  #canvasWrapper {
+    flex: 1; overflow: auto; background:
+      repeating-linear-gradient(0deg, #fafafa 0px, #fafafa 24px, #f0f0f0 25px),
+      repeating-linear-gradient(90deg, #fafafa 0px, #fafafa 24px, #f0f0f0 25px);
+  }
+  #canvas { display: block; }
+
+  #sidebar {
+    width: 340px; border-left: 1px solid #ccc; background: #fdfdfd;
+    overflow-y: auto; padding: 10px; flex-shrink: 0;
+  }
+
+  .panel {
+    border: 1px solid #ddd; border-radius: 6px; padding: 10px; margin-bottom: 12px;
+    background: #fff;
+  }
+  .panel h3 { margin: 0 0 8px 0; font-size: 14px; color: #2c3e50; }
+  .panel label { display: block; font-size: 12px; color: #555; margin-top: 6px; }
+  .panel input[type=text], .panel input[type=number] {
+    width: 100%; padding: 5px; margin-top: 2px; border: 1px solid #ccc; border-radius: 4px;
+  }
+  .checkbox-label { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; }
+  .checkbox-label input { width: auto !important; }
+
+  .btn-row { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+
+  .state-list { max-height: 140px; overflow-y: auto; }
+  .state-list-item {
+    padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 13px;
+  }
+  .state-list-item:hover { background: #f0f0f0; }
+  .state-list-item.active { background: #cde7ff; font-weight: bold; }
+
+  .action-item {
+    border: 1px solid #eee; border-radius: 4px; padding: 6px 8px; margin-bottom: 8px;
+    background: #fafafa;
+  }
+  .action-item ul { margin: 4px 0 4px 16px; padding: 0; font-size: 12px; }
+
+  .transition-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .transition-row select { flex: 1; padding: 4px; }
+  .transition-row input { width: 70px; padding: 4px; }
+
+  .hint { font-size: 12px; color: #888; }
+  .form-panel { border-color: #3498db; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Editor de MDP (Grafo)</h1>
+  <button id="btnExport">⬇ Exportar JSON</button>
+  <button id="btnImport">⬆ Importar JSON</button>
+  <input type="file" id="fileImport" accept="application/json" style="display:none">
+  <button id="btnClear" class="btn-danger">🗑 Limpar Tudo</button>
+  <div class="info">
+    <b>Clique em espaço vazio</b> → cria estado &nbsp;|&nbsp;
+    <b>Arrastar estado</b> → move &nbsp;|&nbsp;
+    <b>[+] no estado</b> → cria ação determinística &nbsp;|&nbsp;
+    <b>Arrastar a ponta da seta (●)</b> → redireciona destino &nbsp;|&nbsp;
+    <b>"+ Adicionar Transição"</b> no painel → cria nó ◇ no meio do caminho + novo ramo pendente para arrastar até o novo destino &nbsp;|&nbsp;
+    <kbd>Delete</kbd> remove &nbsp;|&nbsp; <kbd>Ctrl+Z</kbd> desfaz
+  </div>
+</header>
+
+<div id="main">
+  <div id="canvasWrapper">
+    <svg id="canvas" width="2400" height="1600"></svg>
+  </div>
+  <div id="sidebar"></div>
+</div>
+
+<script>
+const SVGNS = 'http://www.w3.org/2000/svg';
+const NODE_R = 32;
+const ACTION_SQ = 9;
+const HANDLE_R = 6;
+const HANDLE_HIT_R = 13;
+const MAX_UNDO = 60;
+
+let states = [];
+let actions = []; // {id, stateId, name, node:{x,y}, transitions:[{to:number|null, prob}]}
+let nextStateId = 1;
+let nextActionId = 1;
+
+let selection = { type: null, id: null }; // 'state' | 'action'
+let formOpen = false;
+
+let undoStack = [];
+
+// Alças coletadas durante o desenho das arestas, renderizadas por cima de tudo
+// (garante prioridade de clique nas pontas/handles).
+let pendingHandles = [];
+
+const svgEl = document.getElementById('canvas');
+
+// ---------- HISTÓRICO (UNDO) ----------
+function snapshot(){
+  return JSON.stringify({ states, actions, nextStateId, nextActionId, selection, formOpen });
+}
+function pushHistory(){
+  undoStack.push(snapshot());
+  if(undoStack.length > MAX_UNDO) undoStack.shift();
+}
+function undo(){
+  if(undoStack.length === 0) return;
+  const data = JSON.parse(undoStack.pop());
+  states = data.states;
+  actions = data.actions;
+  nextStateId = data.nextStateId;
+  nextActionId = data.nextActionId;
+  selection = data.selection || { type: null, id: null };
+  formOpen = data.formOpen || false;
+  render();
+}
+
+// ---------- UTIL ----------
+function colorForAction(id){
+  return `hsl(${(id*67)%360}, 65%, 42%)`;
+}
+function offsetForIndex(n){
+  if(n===0) return 0;
+  const sign = n % 2 === 1 ? 1 : -1;
+  const mag = Math.ceil(n/2) * 26;
+  return sign * mag;
+}
+function svgPointFromEvent(ev, rect){
+  return { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
+}
+function isEditableTarget(el){
+  return el && ['INPUT','TEXTAREA','SELECT'].includes(el.tagName);
+}
+function normalizeEqually(action){
+  const n = action.transitions.length;
+  if(n > 0) action.transitions.forEach(t => t.prob = 1 / n);
+}
+
+// ---------- SELEÇÃO ----------
+function selectState(id){
+  selection = { type: 'state', id };
+  formOpen = false;
+  render();
+}
+function openActionForm(id){
+  selection = { type: 'action', id };
+  formOpen = true;
+  render();
+}
+function clearSelection(){
+  selection = { type: null, id: null };
+  formOpen = false;
+  render();
+}
+
+// ---------- ESTADOS ----------
+function addStateAt(x, y){
+  pushHistory();
+  const id = nextStateId++;
+  states.push({ id, name: 's' + id, x, y, reward: 0, terminal: false });
+  selection = { type: 'state', id };
+  formOpen = false;
+  render();
+}
+
+function deleteState(id){
+  pushHistory();
+  states = states.filter(s => s.id !== id);
+  actions = actions.filter(a => a.stateId !== id);
+  actions.forEach(a => a.transitions = a.transitions.filter(t => t.to !== id));
+  if(selection.type === 'state' && selection.id === id) clearSelection();
+  render();
+}
+
+// ---------- AÇÕES ----------
+// Cria uma ação DETERMINÍSTICA por padrão: uma única transição (loop no próprio estado, prob=1)
+function createActionForState(state){
+  pushHistory();
+  const id = nextActionId++;
+  const existingCount = actions.filter(a => a.stateId === state.id).length;
+  const angle = -Math.PI/4 - existingCount * 0.5;
+  const dist = 100;
+  const node = {
+    x: state.x + Math.cos(angle) * dist,
+    y: state.y + Math.sin(angle) * dist
+  };
+  const action = {
+    id,
+    stateId: state.id,
+    name: 'a' + id,
+    node,
+    transitions: [ { to: state.id, prob: 1 } ]
+  };
+  actions.push(action);
+  openActionForm(id);
+}
+
+function deleteAction(id){
+  pushHistory();
+  actions = actions.filter(a => a.id !== id);
+  if(selection.type === 'action' && selection.id === id) clearSelection();
+  render();
+}
+
+// Chamada pelo botão "+ Adicionar Transição" do painel.
+// Se a ação tinha 1 transição válida: posiciona o nó ◇ no MEIO do caminho atual
+// (entre origem e destino já conectado, ou acima do estado no caso de loop),
+// mantém essa transição e adiciona uma NOVA transição pendente (sem destino).
+function addPendingTransition(action){
+  pushHistory();
+  const from = states.find(s => s.id === action.stateId);
+
+  if(action.transitions.length === 1 && action.transitions[0].to !== null){
+    const tr0 = action.transitions[0];
+    const target = states.find(s => s.id === tr0.to);
+    if(from && target){
+      if(target.id === from.id){
+        action.node = { x: from.x, y: from.y - NODE_R - 70 };
+      } else {
+        action.node = { x: (from.x + target.x) / 2, y: (from.y + target.y) / 2 };
+      }
+    }
+  }
+
+  action.transitions.push({ to: null, prob: 0 });
+  normalizeEqually(action);
+
+  selection = { type: 'action', id: action.id };
+  formOpen = true;
+  render();
+}
+
+// ---------- RENDER PRINCIPAL ----------
+function render(){
+  renderSVG();
+  renderSidebar();
+}
+
+// ---------- SVG ----------
+function renderSVG(){
+  svgEl.innerHTML = '';
+  pendingHandles = [];
+
+  const defs = document.createElementNS(SVGNS, 'defs');
+  const marker = document.createElementNS(SVGNS, 'marker');
+  marker.setAttribute('id', 'arrow');
+  marker.setAttribute('viewBox', '0 0 10 10');
+  marker.setAttribute('refX', '8'); marker.setAttribute('refY', '5');
+  marker.setAttribute('markerWidth', '8'); marker.setAttribute('markerHeight', '8');
+  marker.setAttribute('orient', 'auto-start-reverse');
+  const arrowPath = document.createElementNS(SVGNS, 'path');
+  arrowPath.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+  arrowPath.setAttribute('fill', '#555');
+  marker.appendChild(arrowPath);
+  defs.appendChild(marker);
+  svgEl.appendChild(defs);
+
+  svgEl.onmousedown = (e) => {
+    if(e.target !== svgEl) return;
+    const rect = svgEl.getBoundingClientRect();
+    const p = svgPointFromEvent(e, rect);
+    addStateAt(p.x, p.y);
+  };
+
+  renderEdgesInto(svgEl);
+  renderNodesInto(svgEl);
+  renderPendingHandles(svgEl); // por cima de tudo
+}
+
+// ---------- DROP TARGET ----------
+function findDropTarget(ev){
+  const el = document.elementFromPoint(ev.clientX, ev.clientY);
+  if(!el) return null;
+  const stateEl = el.closest('[data-state-hit]');
+  if(stateEl) return { type: 'state', id: parseInt(stateEl.getAttribute('data-state-hit')) };
+  if(el.closest('#canvas')) return { type: 'empty' };
+  return null;
+}
+
+// ---------- ARRASTAR ESTADO (sempre move) ----------
+function startStateDrag(e, state){
+  e.stopPropagation();
+  const rect = svgEl.getBoundingClientRect();
+  const startClientX = e.clientX, startClientY = e.clientY;
+  const offsetX = e.clientX - rect.left - state.x;
+  const offsetY = e.clientY - rect.top - state.y;
+  let moved = false;
+
+  function onMove(ev){
+    const r = svgEl.getBoundingClientRect();
+    if(!moved && (Math.abs(ev.clientX-startClientX) > 4 || Math.abs(ev.clientY-startClientY) > 4)){
+      moved = true;
+      pushHistory();
+    }
+    if(moved){
+      state.x = ev.clientX - r.left - offsetX;
+      state.y = ev.clientY - r.top - offsetY;
+      renderSVG();
+    }
+  }
+  function onUp(){
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    if(!moved) selectState(state.id);
+    else render();
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+// ---------- ARRASTAR ALÇA (ação com 0 ou 1 transição) — redireciona destino único ----------
+function startHandleDrag(e, action, anchorPoint){
+  e.stopPropagation();
+  e.preventDefault();
+  const startClientX = e.clientX, startClientY = e.clientY;
+  let moved = false;
+  let tempLine = null;
+
+  function onMove(ev){
+    const r = svgEl.getBoundingClientRect();
+    if(!moved && (Math.abs(ev.clientX-startClientX) > 4 || Math.abs(ev.clientY-startClientY) > 4)){
+      moved = true;
+      tempLine = document.createElementNS(SVGNS, 'line');
+      tempLine.setAttribute('stroke', colorForAction(action.id));
+      tempLine.setAttribute('stroke-width', '2');
+      tempLine.setAttribute('stroke-dasharray', '5,4');
+      tempLine.setAttribute('x1', anchorPoint.x); tempLine.setAttribute('y1', anchorPoint.y);
+      svgEl.appendChild(tempLine);
+    }
+    if(moved){
+      const p = svgPointFromEvent(ev, r);
+      tempLine.setAttribute('x2', p.x); tempLine.setAttribute('y2', p.y);
+    }
+  }
+
+  function onUp(ev){
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    if(tempLine) tempLine.remove();
+
+    if(!moved){
+      openActionForm(action.id);
+      return;
+    }
+
+    const dropTarget = findDropTarget(ev);
+    if(dropTarget && dropTarget.type === 'state'){
+      pushHistory();
+      action.transitions = [ { to: dropTarget.id, prob: 1 } ];
+      render();
+    } else {
+      render();
+    }
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+// ---------- ARRASTAR ALÇA DE TRANSIÇÃO PENDENTE (ação com 2+ transições) ----------
+// Ao soltar sobre um estado, define APENAS o destino desta transição específica
+// (as demais transições da ação permanecem intactas).
+function startAssignDrag(e, action, transition, anchorPoint){
+  e.stopPropagation();
+  e.preventDefault();
+  const startClientX = e.clientX, startClientY = e.clientY;
+  let moved = false;
+  let tempLine = null;
+
+  function onMove(ev){
+    const r = svgEl.getBoundingClientRect();
+    if(!moved && (Math.abs(ev.clientX-startClientX) > 4 || Math.abs(ev.clientY-startClientY) > 4)){
+      moved = true;
+      tempLine = document.createElementNS(SVGNS, 'line');
+      tempLine.setAttribute('stroke', colorForAction(action.id));
+      tempLine.setAttribute('stroke-width', '2');
+      tempLine.setAttribute('stroke-dasharray', '5,4');
+      tempLine.setAttribute('x1', anchorPoint.x); tempLine.setAttribute('y1', anchorPoint.y);
+      svgEl.appendChild(tempLine);
+    }
+    if(moved){
+      const p = svgPointFromEvent(ev, r);
+      tempLine.setAttribute('x2', p.x); tempLine.setAttribute('y2', p.y);
+    }
+  }
+
+  function onUp(ev){
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    if(tempLine) tempLine.remove();
+
+    if(!moved){
+      openActionForm(action.id);
+      return;
+    }
+
+    const dropTarget = findDropTarget(ev);
+    if(dropTarget && dropTarget.type === 'state'){
+      const dup = action.transitions.find(t => t !== transition && t.to === dropTarget.id);
+      if(dup){
+        alert('Já existe uma transição desta ação para este estado.');
+        render();
+        return;
+      }
+      pushHistory();
+      transition.to = dropTarget.id;
+      normalizeEqually(action);
+      render();
+    } else {
+      render();
+    }
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+// ---------- ARRASTAR NÓ ◇ — apenas reposiciona ----------
+function startDiamondDrag(e, action){
+  e.stopPropagation();
+  const rect = svgEl.getBoundingClientRect();
+  const startClientX = e.clientX, startClientY = e.clientY;
+  const node = action.node;
+  const offsetX = e.clientX - rect.left - node.x;
+  const offsetY = e.clientY - rect.top - node.y;
+  let moved = false;
+
+  function onMove(ev){
+    const r = svgEl.getBoundingClientRect();
+    if(!moved && (Math.abs(ev.clientX-startClientX) > 4 || Math.abs(ev.clientY-startClientY) > 4)){
+      moved = true;
+      pushHistory();
+    }
+    if(moved){
+      node.x = ev.clientX - r.left - offsetX;
+      node.y = ev.clientY - r.top - offsetY;
+      renderSVG();
+    }
+  }
+  function onUp(){
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    if(!moved) openActionForm(action.id);
+    else render();
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+// ---------- NÓS (ESTADOS) ----------
+function renderNodesInto(svg){
+  states.forEach(state => {
+    const g = document.createElementNS(SVGNS, 'g');
+    g.setAttribute('transform', `translate(${state.x},${state.y})`);
+
+    const hit = document.createElementNS(SVGNS, 'circle');
+    hit.setAttribute('r', NODE_R);
+    hit.setAttribute('fill', 'transparent');
+    hit.setAttribute('data-state-hit', state.id);
+    g.appendChild(hit);
+
+    if(state.terminal){
+      const outer = document.createElementNS(SVGNS, 'circle');
+      outer.setAttribute('r', NODE_R + 6);
+      outer.setAttribute('fill', 'none');
+      outer.setAttribute('stroke', '#333');
+      outer.setAttribute('stroke-dasharray', '4,3');
+      g.appendChild(outer);
+    }
+
+    const isSelected = selection.type === 'state' && selection.id === state.id;
+
+    const circle = document.createElementNS(SVGNS, 'circle');
+    circle.setAttribute('r', NODE_R);
+    circle.setAttribute('fill', isSelected ? '#cde7ff' : (state.terminal ? '#ffecec' : '#ffffff'));
+    circle.setAttribute('stroke', isSelected ? '#2980b9' : '#333');
+    circle.setAttribute('stroke-width', isSelected ? '3' : '2');
+    circle.style.cursor = 'grab';
+    circle.setAttribute('data-state-hit', state.id);
+    g.appendChild(circle);
+
+    const nameText = document.createElementNS(SVGNS, 'text');
+    nameText.setAttribute('text-anchor', 'middle');
+    nameText.setAttribute('y', '-2');
+    nameText.setAttribute('font-size', '13');
+    nameText.setAttribute('font-weight', 'bold');
+    nameText.setAttribute('pointer-events', 'none');
+    nameText.textContent = state.name;
+    g.appendChild(nameText);
+
+    const rewardText = document.createElementNS(SVGNS, 'text');
+    rewardText.setAttribute('text-anchor', 'middle');
+    rewardText.setAttribute('y', '14');
+    rewardText.setAttribute('font-size', '11');
+    rewardText.setAttribute('fill', '#555');
+    rewardText.setAttribute('pointer-events', 'none');
+    rewardText.textContent = `R=${state.reward}`;
+    g.appendChild(rewardText);
+
+    circle.addEventListener('mousedown', (e) => startStateDrag(e, state));
+    hit.addEventListener('mousedown', (e) => startStateDrag(e, state));
+
+    const plusG = document.createElementNS(SVGNS, 'g');
+    const px = NODE_R * 0.75, py = -NODE_R * 0.75;
+    plusG.setAttribute('transform', `translate(${px},${py})`);
+    plusG.style.cursor = 'pointer';
+
+    const plusCircle = document.createElementNS(SVGNS, 'circle');
+    plusCircle.setAttribute('r', 10);
+    plusCircle.setAttribute('fill', '#27ae60');
+    plusCircle.setAttribute('stroke', '#1e8449');
+    plusG.appendChild(plusCircle);
+
+    const plusText = document.createElementNS(SVGNS, 'text');
+    plusText.setAttribute('text-anchor', 'middle');
+    plusText.setAttribute('y', '4');
+    plusText.setAttribute('font-size', '14');
+    plusText.setAttribute('font-weight', 'bold');
+    plusText.setAttribute('fill', '#fff');
+    plusText.setAttribute('pointer-events', 'none');
+    plusText.textContent = '+';
+    plusG.appendChild(plusText);
+
+    plusG.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      createActionForState(state);
+    });
+    plusG.setAttribute('title', 'Nova ação (determinística)');
+    g.appendChild(plusG);
+
+    svg.appendChild(g);
+  });
+}
+
+// ---------- ARESTAS / AÇÕES ----------
+function renderEdgesInto(svg){
+  const pairIndex = {};
+  const selfLoopIndex = {};
+
+  actions.forEach(action => {
+    const from = states.find(s => s.id === action.stateId);
+    if(!from) return;
+    if(!action.node) action.node = { x: from.x + 90, y: from.y - 60 };
+
+    if(action.transitions.length <= 1){
+      renderSingleTransitionAction(svg, from, action, pairIndex, selfLoopIndex);
+    } else {
+      renderMultiTransitionAction(svg, from, action);
+    }
+  });
+}
+
+// ---- 0 ou 1 transição: seta direta, sem nó intermediário ----
+function renderSingleTransitionAction(svg, from, action, pairIndex, selfLoopIndex){
+  const tr = action.transitions[0];
+
+  if(!tr || tr.to === null){
+    drawPendingHandle(svg, from, action);
+    return;
+  }
+
+  const to = states.find(s => s.id === tr.to);
+  if(!to){
+    drawPendingHandle(svg, from, action);
+    return;
+  }
+
+  if(to.id === from.id){
+    const idx = selfLoopIndex[from.id] || 0;
+    selfLoopIndex[from.id] = idx + 1;
+    drawSelfLoopDirect(svg, from, action, idx);
+  } else {
+    const key = from.id < to.id ? from.id + '_' + to.id : to.id + '_' + from.id;
+    const idx = pairIndex[key] || 0;
+    pairIndex[key] = idx + 1;
+    drawDirectEdge(svg, from, to, action, idx);
+  }
+}
+
+function drawDirectEdge(svg, from, to, action, idx){
+  const color = colorForAction(action.id);
+  const dx = to.x - from.x, dy = to.y - from.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const ux = dx / dist, uy = dy / dist;
+  const nx = -uy, ny = ux;
+  const offset = offsetForIndex(idx);
+  const mx = (from.x + to.x) / 2 + nx * offset;
+  const my = (from.y + to.y) / 2 + ny * offset;
+
+  let d1x = mx - from.x, d1y = my - from.y;
+  let l1 = Math.hypot(d1x, d1y) || 1;
+  const sx = from.x + (d1x / l1) * NODE_R;
+  const sy = from.y + (d1y / l1) * NODE_R;
+
+  let d2x = to.x - mx, d2y = to.y - my;
+  let l2 = Math.hypot(d2x, d2y) || 1;
+  const ex = to.x - (d2x / l2) * NODE_R;
+  const ey = to.y - (d2y / l2) * NODE_R;
+
+  const path = document.createElementNS(SVGNS, 'path');
+  path.setAttribute('d', `M ${sx} ${sy} Q ${mx} ${my} ${ex} ${ey}`);
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', color);
+  path.setAttribute('stroke-width', '2');
+  path.setAttribute('marker-end', 'url(#arrow)');
+  path.style.cursor = 'pointer';
+  path.addEventListener('mousedown', (e) => { e.stopPropagation(); openActionForm(action.id); });
+  svg.appendChild(path);
+
+  const lx = 0.25 * sx + 0.5 * mx + 0.25 * ex;
+  const ly = 0.25 * sy + 0.5 * my + 0.25 * ey;
+  drawLabel(svg, lx, ly, action.name, color, () => openActionForm(action.id));
+
+  pendingHandles.push({
+    point: { x: ex, y: ey },
+    color,
+    onMouseDown: (e) => startHandleDrag(e, action, { x: ex, y: ey })
+  });
+}
+
+function drawSelfLoopDirect(svg, node, action, idx){
+  const color = colorForAction(action.id);
+  const size = 45 + idx * 30;
+  const x0 = node.x - 14, y0 = node.y - NODE_R + 4;
+  const x1 = node.x + 14, y1 = node.y - NODE_R + 4;
+  const cx1 = node.x - size, cy1 = node.y - NODE_R - size;
+  const cx2 = node.x + size, cy2 = node.y - NODE_R - size;
+
+  const path = document.createElementNS(SVGNS, 'path');
+  path.setAttribute('d', `M ${x0} ${y0} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x1} ${y1}`);
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', color);
+  path.setAttribute('stroke-width', '2');
+  path.setAttribute('marker-end', 'url(#arrow)');
+  path.style.cursor = 'pointer';
+  path.addEventListener('mousedown', (e) => { e.stopPropagation(); openActionForm(action.id); });
+  svg.appendChild(path);
+
+  const lx = node.x;
+  const ly = node.y - NODE_R - size * 0.6 - 6;
+  drawLabel(svg, lx, ly, `${action.name} (loop)`, color, () => openActionForm(action.id));
+
+  pendingHandles.push({
+    point: { x: x1, y: y1 },
+    color,
+    onMouseDown: (e) => startHandleDrag(e, action, { x: x1, y: y1 })
+  });
+}
+
+function drawPendingHandle(svg, from, action){
+  const color = colorForAction(action.id);
+  const node = action.node;
+
+  const line = document.createElementNS(SVGNS, 'line');
+  line.setAttribute('x1', from.x); line.setAttribute('y1', from.y);
+  line.setAttribute('x2', node.x); line.setAttribute('y2', node.y);
+  line.setAttribute('stroke', color);
+  line.setAttribute('stroke-width', '2');
+  line.setAttribute('stroke-dasharray', '4,3');
+  svg.appendChild(line);
+
+  drawLabel(svg, node.x, node.y - 18, `${action.name}: arraste até um estado`, color, () => openActionForm(action.id));
+
+  pendingHandles.push({
+    point: node,
+    color,
+    onMouseDown: (e) => startHandleDrag(e, action, node)
+  });
+}
+
+// Desenha todas as alças coletadas, por CIMA de estados/arestas.
+function renderPendingHandles(svg){
+  pendingHandles.forEach(({ point, color, onMouseDown }) => {
+    const g = document.createElementNS(SVGNS, 'g');
+    g.style.cursor = 'grab';
+
+    const hit = document.createElementNS(SVGNS, 'circle');
+    hit.setAttribute('cx', point.x); hit.setAttribute('cy', point.y);
+    hit.setAttribute('r', HANDLE_HIT_R);
+    hit.setAttribute('fill', 'transparent');
+    g.appendChild(hit);
+
+    const dot = document.createElementNS(SVGNS, 'circle');
+    dot.setAttribute('cx', point.x); dot.setAttribute('cy', point.y);
+    dot.setAttribute('r', HANDLE_R);
+    dot.setAttribute('fill', '#fff');
+    dot.setAttribute('stroke', color);
+    dot.setAttribute('stroke-width', '2');
+    g.appendChild(dot);
+
+    g.addEventListener('mousedown', onMouseDown);
+    svg.appendChild(g);
+  });
+}
+
+// ---- 2+ transições: nó ◇ com ramificações (existentes + pendentes) ----
+function renderMultiTransitionAction(svg, from, action){
+  const node = action.node;
+  const color = colorForAction(action.id);
+  const isSelected = selection.type === 'action' && selection.id === action.id;
+
+  const dx = node.x - from.x, dy = node.y - from.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const ux = dx / dist, uy = dy / dist;
+  const sx = from.x + ux * NODE_R, sy = from.y + uy * NODE_R;
+
+  const stem = document.createElementNS(SVGNS, 'line');
+  stem.setAttribute('x1', sx); stem.setAttribute('y1', sy);
+  stem.setAttribute('x2', node.x); stem.setAttribute('y2', node.y);
+  stem.setAttribute('stroke', color);
+  stem.setAttribute('stroke-width', '2');
+  stem.style.cursor = 'pointer';
+  stem.addEventListener('mousedown', (e) => { e.stopPropagation(); openActionForm(action.id); });
+  svg.appendChild(stem);
+
+  drawLabel(svg, (sx + node.x) / 2, (sy + node.y) / 2 - 10, `${action.name} (probabilística)`, color, () => openActionForm(action.id));
+
+  const targetIndex = {};
+  let pendingCount = 0;
+
+  action.transitions.forEach(tr => {
+    if(tr.to !== null){
+      const to = states.find(s => s.id === tr.to);
+      if(to){
+        const idx = targetIndex[tr.to] || 0;
+        targetIndex[tr.to] = idx + 1;
+        drawNodeToTargetEdge(svg, node, to, action, tr, idx);
+        return;
+      }
+    }
+    // sem destino válido: ramo pendente
+    drawNodeToPendingEdge(svg, node, from, action, tr, pendingCount);
+    pendingCount++;
+  });
+
+  const g = document.createElementNS(SVGNS, 'g');
+  g.style.cursor = 'grab';
+  g.setAttribute('transform', `translate(${node.x},${node.y})`);
+
+  const hit = document.createElementNS(SVGNS, 'circle');
+  hit.setAttribute('r', ACTION_SQ + 6);
+  hit.setAttribute('fill', 'transparent');
+  g.appendChild(hit);
+
+  const rect = document.createElementNS(SVGNS, 'rect');
+  rect.setAttribute('x', -ACTION_SQ); rect.setAttribute('y', -ACTION_SQ);
+  rect.setAttribute('width', ACTION_SQ * 2); rect.setAttribute('height', ACTION_SQ * 2);
+  rect.setAttribute('fill', isSelected ? '#ffe9b3' : '#fff');
+  rect.setAttribute('stroke', color);
+  rect.setAttribute('stroke-width', isSelected ? '3' : '2');
+  rect.setAttribute('transform', 'rotate(45)');
+  g.appendChild(rect);
+
+  g.addEventListener('mousedown', (e) => startDiamondDrag(e, action));
+  svg.appendChild(g);
+}
+
+function drawNodeToTargetEdge(svg, node, target, action, tr, idx){
+  const color = colorForAction(action.id);
+  const dx = target.x - node.x, dy = target.y - node.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const ux = dx / dist, uy = dy / dist;
+  const nx = -uy, ny = ux;
+  const offset = offsetForIndex(idx);
+
+  const startOffset = ACTION_SQ * 1.8;
+  const nsx = node.x + ux * startOffset + nx * offset * 0.15;
+  const nsy = node.y + uy * startOffset + ny * offset * 0.15;
+
+  const mx = (node.x + target.x) / 2 + nx * offset;
+  const my = (node.y + target.y) / 2 + ny * offset;
+
+  let d2x = target.x - mx, d2y = target.y - my;
+  let l2 = Math.hypot(d2x, d2y) || 1;
+  const ex = target.x - (d2x / l2) * NODE_R;
+  const ey = target.y - (d2y / l2) * NODE_R;
+
+  const path = document.createElementNS(SVGNS, 'path');
+  path.setAttribute('d', `M ${nsx} ${nsy} Q ${mx} ${my} ${ex} ${ey}`);
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', color);
+  path.setAttribute('stroke-width', '2');
+  path.setAttribute('marker-end', 'url(#arrow)');
+  path.style.cursor = 'pointer';
+  path.addEventListener('mousedown', (e) => { e.stopPropagation(); openActionForm(action.id); });
+  svg.appendChild(path);
+
+  const lx = 0.25 * nsx + 0.5 * mx + 0.25 * ex;
+  const ly = 0.25 * nsy + 0.5 * my + 0.25 * ey;
+  const label = target.id === action.stateId ? `p=${tr.prob.toFixed(2)} (loop)` : `p=${tr.prob.toFixed(2)}`;
+  drawLabel(svg, lx, ly, label, color, () => openActionForm(action.id));
+}
+
+// Ramo pendente saindo do nó ◇, em leque, com alça arrastável na ponta.
+function drawNodeToPendingEdge(svg, node, from, action, tr, idx){
+  const color = colorForAction(action.id);
+
+  let dx = node.x - from.x, dy = node.y - from.y;
+  let dist = Math.hypot(dx, dy);
+  let ux, uy;
+  if(dist < 1){ ux = 1; uy = 0; } else { ux = dx / dist; uy = dy / dist; }
+
+  const baseAngle = Math.atan2(uy, ux);
+  const sign = idx % 2 === 0 ? 1 : -1;
+  const magnitude = Math.ceil((idx + 1) / 2) * 0.5;
+  const angle = baseAngle + sign * magnitude;
+
+  const stubLen = 65;
+  const ex = node.x + Math.cos(angle) * stubLen;
+  const ey = node.y + Math.sin(angle) * stubLen;
+
+  const startOffset = ACTION_SQ * 1.8;
+  const nsx = node.x + Math.cos(angle) * startOffset;
+  const nsy = node.y + Math.sin(angle) * startOffset;
+
+  const line = document.createElementNS(SVGNS, 'line');
+  line.setAttribute('x1', nsx); line.setAttribute('y1', nsy);
+  line.setAttribute('x2', ex); line.setAttribute('y2', ey);
+  line.setAttribute('stroke', color);
+  line.setAttribute('stroke-width', '2');
+  line.setAttribute('stroke-dasharray', '4,3');
+  svg.appendChild(line);
+
+  drawLabel(svg, ex, ey - 16, `p=${tr.prob.toFixed(2)} — arraste até um estado`, color, () => openActionForm(action.id));
+
+  pendingHandles.push({
+    point: { x: ex, y: ey },
+    color,
+    onMouseDown: (e) => startAssignDrag(e, action, tr, { x: ex, y: ey })
+  });
+}
+
+function drawLabel(svg, x, y, text, color, onClick){
+  const g = document.createElementNS(SVGNS, 'g');
+  g.style.cursor = 'pointer';
+  g.addEventListener('mousedown', (e) => { e.stopPropagation(); onClick(); });
+
+  const approxWidth = text.length * 6 + 10;
+  const rect = document.createElementNS(SVGNS, 'rect');
+  rect.setAttribute('x', x - approxWidth / 2);
+  rect.setAttribute('y', y - 11);
+  rect.setAttribute('width', approxWidth);
+  rect.setAttribute('height', 16);
+  rect.setAttribute('fill', '#fff');
+  rect.setAttribute('stroke', color);
+  rect.setAttribute('rx', '3');
+  g.appendChild(rect);
+
+  const t = document.createElementNS(SVGNS, 'text');
+  t.setAttribute('x', x); t.setAttribute('y', y);
+  t.setAttribute('text-anchor', 'middle');
+  t.setAttribute('font-size', '11');
+  t.setAttribute('fill', color);
+  t.textContent = text;
+  g.appendChild(t);
+
+  svg.appendChild(g);
+}
+
+// ---------- SIDEBAR ----------
+function renderSidebar(){
+  const sidebar = document.getElementById('sidebar');
+  sidebar.innerHTML = '';
+
+  const listSection = document.createElement('div');
+  listSection.className = 'panel';
+  listSection.innerHTML = '<h3>Estados</h3>';
+  const listDiv = document.createElement('div');
+  listDiv.className = 'state-list';
+  if(states.length === 0){
+    listDiv.innerHTML = '<p class="hint">Nenhum estado criado ainda. Clique em um espaço vazio do canvas.</p>';
+  } else {
+    states.forEach(s => {
+      const item = document.createElement('div');
+      item.className = 'state-list-item' + (selection.type==='state' && selection.id===s.id ? ' active' : '');
+      item.textContent = `${s.name} ${s.terminal ? '🏁' : ''} (R=${s.reward})`;
+      item.onclick = () => selectState(s.id);
+      listDiv.appendChild(item);
+    });
+  }
+  listSection.appendChild(listDiv);
+  sidebar.appendChild(listSection);
+
+  if(selection.type === 'state'){
+    const state = states.find(s => s.id === selection.id);
+    if(state){
+      sidebar.appendChild(buildStatePanel(state));
+      sidebar.appendChild(buildActionsListPanel(state));
+    }
+  } else if(selection.type !== 'action'){
+    const hint = document.createElement('div');
+    hint.className = 'panel hint';
+    hint.textContent = "Selecione um estado ou ação para editar. Use o ícone [+] no estado para criar uma nova ação.";
+    sidebar.appendChild(hint);
+  }
+
+  if(formOpen && selection.type === 'action'){
+    sidebar.appendChild(buildActionFormPanel());
+  }
+}
+
+function pushHistoryOnce(flagObj){
+  if(!flagObj.done){ pushHistory(); flagObj.done = true; }
+}
+
+function buildStatePanel(state){
+  const panel = document.createElement('div');
+  panel.className = 'panel';
+  const title = document.createElement('h3');
+  title.textContent = 'Estado: ' + state.name;
+  panel.appendChild(title);
+
+  const editFlag = { done: false };
+
+  const nameLabel = document.createElement('label'); nameLabel.textContent = 'Nome:';
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text'; nameInput.value = state.name;
+  nameInput.onfocus = () => pushHistoryOnce(editFlag);
+  nameInput.oninput = (e) => {
+    state.name = e.target.value;
+    title.textContent = 'Estado: ' + state.name;
+    renderSVG();
+  };
+
+  const rewardLabel = document.createElement('label'); rewardLabel.textContent = 'Recompensa (R):';
+  const rewardInput = document.createElement('input');
+  rewardInput.type = 'number'; rewardInput.step = '0.1'; rewardInput.value = state.reward;
+  rewardInput.onfocus = () => pushHistoryOnce(editFlag);
+  rewardInput.oninput = (e) => {
+    state.reward = parseFloat(e.target.value) || 0;
+    renderSVG();
+  };
+
+  const termLabel = document.createElement('label'); termLabel.className = 'checkbox-label';
+  const termInput = document.createElement('input');
+  termInput.type = 'checkbox'; termInput.checked = state.terminal;
+  termInput.onmousedown = () => pushHistory();
+  termInput.onchange = (e) => {
+    state.terminal = e.target.checked;
+    renderSVG();
+  };
+  termLabel.appendChild(termInput);
+  termLabel.appendChild(document.createTextNode(' Estado Terminal'));
+
+  const hint = document.createElement('p'); hint.className = 'hint';
+  hint.textContent = 'Clique no ícone [+] sobre o estado (no canvas) para criar uma nova ação.';
+
+  const delBtn = document.createElement('button');
+  delBtn.textContent = 'Excluir Estado (Delete)'; delBtn.className = 'btn-danger';
+  delBtn.onclick = () => deleteState(state.id);
+
+  panel.appendChild(nameLabel); panel.appendChild(nameInput);
+  panel.appendChild(rewardLabel); panel.appendChild(rewardInput);
+  panel.appendChild(termLabel);
+  panel.appendChild(hint);
+
+  const btnRow = document.createElement('div'); btnRow.className = 'btn-row';
+  btnRow.appendChild(delBtn);
+  panel.appendChild(btnRow);
+
+  return panel;
+}
+
+function buildActionsListPanel(state){
+  const panel = document.createElement('div');
+  panel.className = 'panel';
+  panel.innerHTML = '<h3>Ações deste estado</h3>';
+
+  const stateActions = actions.filter(a => a.stateId === state.id);
+  if(stateActions.length === 0){
+    const p = document.createElement('p'); p.className = 'hint';
+    p.textContent = 'Nenhuma ação definida. Use o ícone [+] no canvas.';
+    panel.appendChild(p);
+  }
+
+  stateActions.forEach(action => {
+    const item = document.createElement('div');
+    item.className = 'action-item';
+
+    const tipo = action.transitions.length > 1 ? 'probabilística' : 'determinística';
+    const titleDiv = document.createElement('div');
+    titleDiv.innerHTML = `<strong style="color:${colorForAction(action.id)}">${action.name}</strong> (${tipo})`;
+    item.appendChild(titleDiv);
+
+    const list = document.createElement('ul');
+    if(action.transitions.length === 0){
+      const li = document.createElement('li'); li.textContent = 'sem transições';
+      list.appendChild(li);
+    }
+    action.transitions.forEach(tr => {
+      const target = tr.to !== null ? states.find(s => s.id === tr.to) : null;
+      const li = document.createElement('li');
+      let label;
+      if(target){
+        label = tr.to === state.id ? target.name + ' (loop)' : target.name;
+      } else {
+        label = 'pendente (defina no canvas ou aqui)';
+      }
+      li.textContent = `${label} — p=${tr.prob.toFixed(2)}`;
+      list.appendChild(li);
+    });
+    item.appendChild(list);
+
+    const btnRow = document.createElement('div'); btnRow.className = 'btn-row';
+    const editBtn = document.createElement('button'); editBtn.textContent = 'Editar';
+    editBtn.onclick = () => openActionForm(action.id);
+    const delBtn = document.createElement('button'); delBtn.textContent = 'Excluir'; delBtn.className = 'btn-danger';
+    delBtn.onclick = () => deleteAction(action.id);
+    btnRow.appendChild(editBtn); btnRow.appendChild(delBtn);
+    item.appendChild(btnRow);
+
+    panel.appendChild(item);
+  });
+
+  return panel;
+}
+
+function buildActionFormPanel(){
+  const panel = document.createElement('div');
+  panel.className = 'panel form-panel';
+  const existing = actions.find(a => a.id === selection.id);
+  if(!existing){
+    formOpen = false;
+    return document.createElement('div');
+  }
+  const sourceId = existing.stateId;
+
+  const title = document.createElement('h3');
+  title.textContent = 'Editar Ação: ' + existing.name;
+  panel.appendChild(title);
+
+  const nameLabel = document.createElement('label'); nameLabel.textContent = 'Nome da ação:';
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.value = existing.name;
+  panel.appendChild(nameLabel); panel.appendChild(nameInput);
+
+  const transHeader = document.createElement('label');
+  transHeader.textContent = 'Transições (destino / probabilidade):';
+  panel.appendChild(transHeader);
+
+  const transitionsContainer = document.createElement('div');
+  panel.appendChild(transitionsContainer);
+
+  function addRow(defaultTo, defaultProb){
+    const row = document.createElement('div');
+    row.className = 'transition-row';
+
+    const select = document.createElement('select');
+
+    if(defaultTo === null || defaultTo === undefined){
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = '-- defina o destino --';
+      select.appendChild(placeholder);
+    }
+
+    states.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.name + (s.id === sourceId ? ' (loop)' : '');
+      select.appendChild(opt);
+    });
+
+    if(defaultTo !== undefined && defaultTo !== null) select.value = defaultTo;
+
+    const probInput = document.createElement('input');
+    probInput.type = 'number'; probInput.min = '0'; probInput.max = '1'; probInput.step = '0.01';
+    probInput.value = defaultProb !== undefined ? defaultProb : 1;
+
+    const rmBtn = document.createElement('button');
+    rmBtn.type = 'button'; rmBtn.textContent = '✕'; rmBtn.className = 'btn-small';
+    rmBtn.onclick = () => row.remove();
+
+    row.appendChild(select); row.appendChild(probInput); row.appendChild(rmBtn);
+    transitionsContainer.appendChild(row);
+  }
+
+  existing.transitions.forEach(tr => addRow(tr.to, tr.prob));
+
+  const addRowBtn = document.createElement('button');
+  addRowBtn.type = 'button'; addRowBtn.textContent = '+ Adicionar Transição';
+  addRowBtn.onclick = () => addPendingTransition(existing);
+  panel.appendChild(addRowBtn);
+
+  const sumInfo = document.createElement('p'); sumInfo.className = 'hint';
+  sumInfo.textContent = 'Ao clicar em "+ Adicionar Transição", um nó ◇ aparece no meio do caminho atual, com um novo ramo pendente — arraste sua alça (●) no canvas até o estado desejado, ou selecione manualmente aqui. As probabilidades devem somar 1 (normalização automática disponível ao salvar).';
+  panel.appendChild(sumInfo);
+
+  const btnRow = document.createElement('div'); btnRow.className = 'btn-row';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Salvar Ação'; saveBtn.className = 'btn-primary';
+  saveBtn.onclick = () => {
+    const name = nameInput.value.trim();
+    if(!name){ alert('Informe um nome para a ação.'); return; }
+
+    const rows = transitionsContainer.querySelectorAll('.transition-row');
+    const transitions = [];
+    let hasUndefined = false;
+
+    rows.forEach(row => {
+      const sel = row.querySelector('select');
+      const inp = row.querySelector('input');
+      if(sel.value === ''){
+        hasUndefined = true;
+        transitions.push({ to: null, prob: parseFloat(inp.value) || 0 });
+      } else {
+        transitions.push({ to: parseInt(sel.value), prob: parseFloat(inp.value) || 0 });
+      }
+    });
+
+    if(transitions.length === 0){
+      alert('A ação precisa ter ao menos uma transição.');
+      return;
+    }
+
+    if(hasUndefined){
+      alert('Defina o destino de todas as transições (arraste a alça no canvas até um estado, ou selecione manualmente) antes de salvar.');
+      return;
+    }
+
+    if(transitions.length > 1){
+      const sum = transitions.reduce((s, t) => s + t.prob, 0);
+      if(Math.abs(sum - 1) > 0.01){
+        const norm = confirm(`A soma das probabilidades é ${sum.toFixed(3)}. Deseja normalizar automaticamente para somar 1?`);
+        if(norm){ transitions.forEach(t => t.prob = t.prob / sum); }
+      }
+    } else {
+      transitions[0].prob = 1;
+    }
+
+    pushHistory();
+    existing.name = name;
+    existing.transitions = transitions;
+
+    render();
+  };
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Fechar';
+  cancelBtn.onclick = () => clearSelection();
+
+  const delBtn = document.createElement('button');
+  delBtn.textContent = 'Excluir Ação (Delete)'; delBtn.className = 'btn-danger';
+  delBtn.onclick = () => deleteAction(existing.id);
+
+  btnRow.appendChild(saveBtn); btnRow.appendChild(cancelBtn); btnRow.appendChild(delBtn);
+  panel.appendChild(btnRow);
+
+  return panel;
+}
+
+// ---------- TECLADO ----------
+document.addEventListener('keydown', (e) => {
+  if(isEditableTarget(document.activeElement)) return;
+
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z'){
+    e.preventDefault();
+    undo();
+    return;
+  }
+
+  if(e.key === 'Delete' || e.key === 'Backspace'){
+    e.preventDefault();
+    if(selection.type === 'state') deleteState(selection.id);
+    else if(selection.type === 'action') deleteAction(selection.id);
+  }
+});
+
+// ---------- TOOLBAR ----------
+document.getElementById('btnClear').onclick = () => {
+  if(confirm('Isso irá apagar todo o grafo. Continuar? (Ctrl+Z pode desfazer)')){
+    pushHistory();
+    states = []; actions = [];
+    clearSelection();
+    nextStateId = 1; nextActionId = 1;
+    render();
+  }
+};
+
+document.getElementById('btnExport').onclick = () => {
+  const data = JSON.stringify({ states, actions, nextStateId, nextActionId }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'mdp.json'; a.click();
+  URL.revokeObjectURL(url);
+};
+
+document.getElementById('btnImport').onclick = () => document.getElementById('fileImport').click();
+
+document.getElementById('fileImport').onchange = (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try{
+      pushHistory();
+      const data = JSON.parse(ev.target.result);
+      states = data.states || [];
+      actions = data.actions || [];
+      nextStateId = data.nextStateId || (Math.max(0, ...states.map(s => s.id)) + 1);
+      nextActionId = data.nextActionId || (Math.max(0, ...actions.map(a => a.id)) + 1);
+      clearSelection();
+      render();
+    } catch(err){
+      alert('Arquivo inválido: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+};
+
+// ---------- INICIALIZAÇÃO ----------
+render();
+</script>
+
+
+</body></html>
