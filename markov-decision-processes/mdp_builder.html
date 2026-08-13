@@ -315,6 +315,7 @@
 
 <header>
   <h1>Editor de MDP (Grafo)</h1>
+  <button id="btnLoadDungeon">🗺 Carregar Dungeon Padrão</button>
   <button id="btnExport">⬇ Exportar JSON</button>
   <button id="btnImport">⬆ Importar JSON</button>
   <input type="file" id="fileImport" accept="application/json" style="display:none">
@@ -343,6 +344,28 @@ const ACTION_SQ = 9;
 const HANDLE_R = 6;
 const HANDLE_HIT_R = 13;
 const MAX_UNDO = 60;
+
+const defaultDungeonData = {
+  "states": [
+    {"id":1,"name":"Entrada","x":558,"y":176.640625,"reward":0,"terminal":false,"color":"#ffffff"},
+    {"id":2,"name":"Brasa","x":416,"y":268.640625,"reward":-5,"terminal":false,"color":"#ef4444"},
+    {"id":3,"name":"Nebuloso","x":560,"y":385.640625,"reward":-1,"terminal":false,"color":"#60a5fa"},
+    {"id":4,"name":"Verde","x":790,"y":249.640625,"reward":-2,"terminal":false,"color":"#16a34a"},
+    {"id":5,"name":"sT","x":417,"y":442.640625,"reward":10,"terminal":true,"color":"#fcd34d"}
+  ],
+  "actions": [
+    {"id":1,"stateId":1,"name":"a1","node":{"x":626.7106781186548,"y":161.92994688134524},"transitions":[{"to":2,"prob":1}]},
+    {"id":2,"stateId":1,"name":"a2","node":{"x":646,"y":238.640625},"transitions":[{"to":3,"prob":0.7},{"to":4,"prob":0.3}]},
+    {"id":3,"stateId":4,"name":"a1","node":{"x":875.7106781186548,"y":211.92994688134524},"transitions":[{"to":3,"prob":1}]},
+    {"id":4,"stateId":3,"name":"a2","node":{"x":822.7106781186548,"y":338.92994688134524},"transitions":[{"to":1,"prob":1}]},
+    {"id":5,"stateId":3,"name":"a1","node":{"x":780.15395311427,"y":313.68566200152094},"transitions":[{"to":2,"prob":1}]},
+    {"id":6,"stateId":2,"name":"a1","node":{"x":546.7106781186548,"y":321.92994688134524},"transitions":[{"to":1,"prob":1}]},
+    {"id":7,"stateId":2,"name":"a2","node":{"x":504.15395311427005,"y":296.68566200152094},"transitions":[{"to":5,"prob":1}]},
+    {"id":9,"stateId":4,"name":"a2","node":{"x":862.15395311427,"y":170.68566200152094},"transitions":[{"to":4,"prob":1}]}
+  ],
+  "nextStateId": 7,
+  "nextActionId": 10
+};
 
 let states = [];
 let actions = []; // {id, stateId, name, node:{x,y}, transitions:[{to:number|null, prob}]}
@@ -1541,6 +1564,53 @@ document.getElementById('btnExport').onclick = () => {
   URL.revokeObjectURL(url);
 };
 
+function applyImportedData(data){
+  if(!data || typeof data !== 'object') throw new Error('JSON inválido.');
+  const importedStates = (data.states || []).map(s => ({
+    ...s,
+    color: normalizeStateColor(s)
+  }));
+  const importedActions = data.actions || [];
+
+  pushHistory();
+  states = importedStates;
+  actions = importedActions;
+  nextStateId = data.nextStateId || (Math.max(0, ...states.map(s => s.id)) + 1);
+  nextActionId = data.nextActionId || (Math.max(0, ...actions.map(a => a.id)) + 1);
+  clearSelection();
+  render();
+}
+
+async function loadDungeonData(){
+  const candidates = [
+    './mdp_dungeon.json',
+    'mdp_dungeon.json',
+    new URL('./mdp_dungeon.json', window.location.href).href
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      const response = await fetch(candidate, { cache: 'no-store' });
+      if (!response.ok) continue;
+      const data = await response.json();
+      applyImportedData(data);
+      return;
+    } catch (err) {
+      // tenta o próximo caminho
+    }
+  }
+
+  try {
+    applyImportedData(defaultDungeonData);
+  } catch (err) {
+    alert('Não foi possível carregar o dungeon.');
+  }
+}
+
+document.getElementById('btnLoadDungeon').onclick = () => {
+  loadDungeonData();
+};
+
 document.getElementById('btnImport').onclick = () => document.getElementById('fileImport').click();
 
 document.getElementById('fileImport').onchange = (e) => {
@@ -1549,17 +1619,8 @@ document.getElementById('fileImport').onchange = (e) => {
   const reader = new FileReader();
   reader.onload = (ev) => {
     try{
-      pushHistory();
       const data = JSON.parse(ev.target.result);
-      states = (data.states || []).map(s => ({
-        ...s,
-        color: normalizeStateColor(s)
-      }));
-      actions = data.actions || [];
-      nextStateId = data.nextStateId || (Math.max(0, ...states.map(s => s.id)) + 1);
-      nextActionId = data.nextActionId || (Math.max(0, ...actions.map(a => a.id)) + 1);
-      clearSelection();
-      render();
+      applyImportedData(data);
     } catch(err){
       alert('Arquivo inválido: ' + err.message);
     }
