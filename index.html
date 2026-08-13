@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Deep Learning — UFRGS</title>
+  <title>Aprendizado por Reforço — INF UFRGS</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -149,13 +149,13 @@
 <body>
 
   <div class="hero">
-    <div class="badge">UFRGS · Materiais de Deep Learning</div>
-    <h1>Slides Interativos para Aprendizes Profundos</h1>
+    <div class="badge">INF-UFRGS · Aprendizado por Reforço</div>
+    <h1>Materiais Interativos para Aprendizes por Reforço</h1>
     <p class="hero-sub">Pelo prof. <a href="http://inf.ufrgs.br/~artavares">Anderson Rocha Tavares</a></p>
     <div style="margin-top: 0.9rem;">
       <p> CC BY-NC-SA 4.0 </p>  
       <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.pt-br" target="_blank" rel="noopener" title="CC BY-NC-SA 4.0">
-        <img src="https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png" alt="Licença Creative Commons BY-NC-SA 4.0" style="height: 28px; border-radius: 4px;" />
+        <img src="https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png" alt="Licença Creative Commons BY-NC-SA 4.0" style="height: 28px; border-radius: 4px;">
       </a>
       <p>(Copie, adapte, dê o crédito, mantenha aberto, não lucre) </p>
     </div>
@@ -163,69 +163,33 @@
 
   <div class="grid">
 
-    <a class="card card-convnets" href="convnets/index.html">
-      <div class="card-icon">🧠</div>
-      <div class="card-title">Redes Convolucionais</div>
-      <div class="card-desc">CNNs, filtros, pooling, arquiteturas clássicas e modernas.</div>
-      <span class="card-link">Abrir slides →</span>
+    <a class="card card-convnets" href="multi-armed-bandits/simple-mab.html">
+      <div class="card-icon">🎰</div>
+      <div class="card-title">Multi-armed Bandits</div>
+      <div class="card-desc">Explore a exploração versus explotação em um ambiente simples com duas alavancas.</div>
+      <span class="card-link">Abrir simulação →</span>
     </a>
 
-    <a class="card card-rnns" href="rnns/index.html">
-      <div class="card-icon">🔁</div>
-      <div class="card-title">RNNs</div>
-      <div class="card-desc">Redes recorrentes, LSTM, GRU e modelagem de sequências.</div>
-      <span class="card-link">Abrir slides →</span>
+    <a class="card card-rnns" href="markov-decision-processes/mdp_builder.html">
+      <div class="card-icon">🧩</div>
+      <div class="card-title">MDP Builder</div>
+      <div class="card-desc">Construa grafos de processos de decisão de Markov e visualize transições e recompensas.</div>
+      <span class="card-link">Abrir editor →</span>
     </a>
 
-    <a class="card card-transformers" href="transformers/index.html">
-      <div class="card-icon">⚡</div>
-      <div class="card-title">Transformers</div>
-      <div class="card-desc">Atenção, self-attention, BERT, GPT e arquitetura completa.</div>
-      <span class="card-link">Abrir slides →</span>
-    </a>
-
-    <a class="card card-vit" href="vit/index.html">
-      <div class="card-icon">👁️</div>
-      <div class="card-title">Vision Transformers</div>
-      <div class="card-desc">ViT, patches, CLIP, aprendizado contrastivo e zero-shot.</div>
-      <span class="card-link">Abrir slides →</span>
-    </a>
-
-    <a class="card card-ia-gen" href="ia-gen/index.html">
-      <div class="card-icon">🎨</div>
-      <div class="card-title">IA Generativa</div>
-      <div class="card-desc">Autoencoders, VAEs, GANs e geração de conteúdo.</div>
-      <span class="card-link">Abrir slides →</span>
-    </a>
-
-    <a class="card card-difusao" href="difusao/index.html">
-      <div class="card-icon">🌫️</div>
-      <div class="card-title">Modelos de Difusão</div>
-      <div class="card-desc">DDPM, score matching, geração de imagens por difusão.</div>
-      <span class="card-link">Abrir slides →</span>
-    </a>
-
-    <a class="card card-multimodal" href="multimodal/index.html">
-      <div class="card-icon">🔗</div>
-      <div class="card-title">Multimodal</div>
-      <div class="card-desc">Fusão de visão e linguagem, modelos multimodais modernos.</div>
-      <span class="card-link">Abrir slides →</span>
-    </a>
-
-    <a class="card card-gnns" href="gnns/index.html">
-      <div class="card-icon">🕸️</div>
-      <div class="card-title">GNNs</div>
-      <div class="card-desc">Redes neurais em grafos, message passing e aplicações.</div>
-      <span class="card-link">Abrir slides →</span>
+    <a class="card card-transformers" href="markov-decision-processes/dungeon_game.html">
+      <div class="card-icon">🗝️</div>
+      <div class="card-title">Dungeon Game</div>
+      <div class="card-desc">Jogue por uma masmorra com recompensas e transições estocásticas para entender políticas e estados.</div>
+      <span class="card-link">Abrir jogo →</span>
     </a>
 
   </div>
 
   <footer style="margin-top: 5rem; color: var(--text-dim); font-size: 1rem; text-align: center; line-height: 1.7;">
-    UFRGS · Curso de Deep Learning · Prof. Anderson Rocha Tavares · Slides vibe-codados com ❤️<br/>
+    UFRGS ·Aprendizado por Reforço · Prof. Anderson Rocha Tavares · Vibe-codado com ❤️<br>
     Colabore:
-    <a href="https://github.com/andertavares/deeplearning-ufrgs" target="_blank" rel="noopener"
-       style="color: var(--text-dim); text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem; margin-left: 0.2rem;">
+    <a href="https://github.com/andertavares/rl-ufrgs" target="_blank" rel="noopener" style="color: var(--text-dim); text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem; margin-left: 0.2rem;">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle;">
         <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577
           0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755
@@ -236,9 +200,9 @@
           2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84
           1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81
           2.22 0 1.605-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795
-          24 17.295 24 12c0-6.63-5.37-12-12-12z"/>
+          24 17.295 24 12c0-6.63-5.37-12-12-12z"></path>
       </svg>
-      github.com/andertavares/deeplearning-ufrgs
+      github.com/andertavares/rl-ufrgs
     </a>
   </footer>
 
