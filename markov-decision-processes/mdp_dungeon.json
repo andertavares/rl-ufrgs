@@ -1,0 +1,177 @@
+{
+  "states": [
+    {
+      "id": 1,
+      "name": "s1",
+      "x": 558,
+      "y": 176.640625,
+      "reward": 0,
+      "terminal": false,
+      "color": "#ffffff"
+    },
+    {
+      "id": 2,
+      "name": "s2",
+      "x": 416,
+      "y": 268.640625,
+      "reward": -5,
+      "terminal": false,
+      "color": "#ef4444"
+    },
+    {
+      "id": 3,
+      "name": "s3",
+      "x": 560,
+      "y": 385.640625,
+      "reward": -1,
+      "terminal": false,
+      "color": "#60a5fa"
+    },
+    {
+      "id": 4,
+      "name": "s4",
+      "x": 790,
+      "y": 249.640625,
+      "reward": -2,
+      "terminal": false,
+      "color": "#16a34a"
+    },
+    {
+      "id": 5,
+      "name": "sT",
+      "x": 417,
+      "y": 442.640625,
+      "reward": 10,
+      "terminal": true,
+      "color": "#fcd34d"
+    }
+  ],
+  "actions": [
+    {
+      "id": 1,
+      "stateId": 1,
+      "name": "a1",
+      "node": {
+        "x": 626.7106781186548,
+        "y": 161.92994688134524
+      },
+      "transitions": [
+        {
+          "to": 2,
+          "prob": 1
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "stateId": 1,
+      "name": "a2",
+      "node": {
+        "x": 646,
+        "y": 238.640625
+      },
+      "transitions": [
+        {
+          "to": 3,
+          "prob": 0.3
+        },
+        {
+          "to": 4,
+          "prob": 0.7
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "stateId": 4,
+      "name": "a1",
+      "node": {
+        "x": 875.7106781186548,
+        "y": 211.92994688134524
+      },
+      "transitions": [
+        {
+          "to": 3,
+          "prob": 1
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "stateId": 3,
+      "name": "a2",
+      "node": {
+        "x": 822.7106781186548,
+        "y": 338.92994688134524
+      },
+      "transitions": [
+        {
+          "to": 1,
+          "prob": 1
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "stateId": 3,
+      "name": "a1",
+      "node": {
+        "x": 780.15395311427,
+        "y": 313.68566200152094
+      },
+      "transitions": [
+        {
+          "to": 2,
+          "prob": 1
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "stateId": 2,
+      "name": "a1",
+      "node": {
+        "x": 546.7106781186548,
+        "y": 321.92994688134524
+      },
+      "transitions": [
+        {
+          "to": 1,
+          "prob": 1
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "stateId": 2,
+      "name": "a2",
+      "node": {
+        "x": 504.15395311427005,
+        "y": 296.68566200152094
+      },
+      "transitions": [
+        {
+          "to": 5,
+          "prob": 1
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "stateId": 4,
+      "name": "a2",
+      "node": {
+        "x": 862.15395311427,
+        "y": 170.68566200152094
+      },
+      "transitions": [
+        {
+          "to": 4,
+          "prob": 1
+        }
+      ]
+    }
+  ],
+  "nextStateId": 7,
+  "nextActionId": 10
+}
