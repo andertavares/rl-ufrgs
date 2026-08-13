@@ -449,6 +449,167 @@
     }
 
     .terminal-card { animation: glow 1.8s ease-in-out infinite; }
+
+    /* ── QUIZ ── */
+    .quiz-section {
+      max-width: 860px;
+      margin: 2rem auto 0;
+      display: none;
+    }
+
+    .quiz-section.visible { display: block; }
+
+    .quiz-header {
+      text-align: center;
+      margin-bottom: 1.8rem;
+    }
+
+    .quiz-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: var(--grad1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.4rem;
+    }
+
+    .quiz-subtitle {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .quiz-form { display: flex; flex-direction: column; gap: 1rem; }
+
+    .quiz-q {
+      background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.2rem 1.3rem;
+      box-shadow: var(--shadow);
+    }
+
+    .quiz-q-label {
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--purple);
+      margin-bottom: 0.4rem;
+    }
+
+    .quiz-q-text {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+      line-height: 1.5;
+    }
+
+    .quiz-input {
+      width: 100%;
+      border: 1.5px solid var(--border2);
+      border-radius: 10px;
+      padding: 0.65rem 0.9rem;
+      font-size: 0.92rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      transition: border-color 0.15s;
+      resize: vertical;
+      min-height: 56px;
+    }
+
+    .quiz-input:focus {
+      outline: none;
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px rgba(91,33,182,0.08);
+    }
+
+    .btn-submit-quiz {
+      border: 1.5px solid var(--blue);
+      background: linear-gradient(180deg, #3b82f6, #1d4ed8);
+      color: #fff;
+      padding: 0.78rem 1.6rem;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      align-self: center;
+      margin-top: 0.5rem;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .btn-submit-quiz:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(29,78,216,0.18);
+    }
+
+    /* result cards */
+    .quiz-results { display: flex; flex-direction: column; gap: 1rem; }
+
+    .quiz-result-card {
+      background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.2rem 1.3rem;
+      box-shadow: var(--shadow);
+    }
+
+    .qr-q-label {
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--purple);
+      margin-bottom: 0.3rem;
+    }
+
+    .qr-q-text {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.85rem;
+      line-height: 1.5;
+    }
+
+    .qr-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    @media (max-width: 560px) { .qr-cols { grid-template-columns: 1fr; } }
+
+    .qr-col-label {
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 0.35rem;
+    }
+
+    .qr-col-label.yours { color: var(--text-dim); }
+    .qr-col-label.correct { color: var(--green); }
+
+    .qr-box {
+      border-radius: 10px;
+      padding: 0.65rem 0.9rem;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+      border: 1px solid var(--border2);
+      background: var(--bg3);
+      white-space: pre-wrap;
+    }
+
+    .qr-box.correct-box {
+      background: var(--green-lt);
+      border-color: rgba(22,101,52,0.2);
+      color: var(--green);
+      font-weight: 500;
+    }
   </style>
 </head>
 <body>
@@ -472,7 +633,10 @@
         <div class="ws-value" id="win-steps">0</div>
       </div>
     </div>
-    <button class="btn-play-again" onclick="restartGame()">⚔ Jogar Novamente</button>
+    <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;">
+      <button class="btn-play-again" onclick="restartGame()">⚔ Jogar Novamente</button>
+      <button class="btn-play-again" style="background:linear-gradient(180deg,#3b82f6,#1d4ed8);border-color:var(--blue);" onclick="openQuiz()">📋 Responder Perguntas</button>
+    </div>
   </div>
 </div>
 
@@ -510,6 +674,21 @@
       <div class="history-empty">Nenhuma sala visitada ainda.</div>
     </div>
   </div>
+</div>
+
+<!-- ── QUIZ ── -->
+<div id="quiz-section" class="quiz-section">
+  <div class="quiz-header">
+    <h2 class="quiz-title">🧠 Reflexão sobre o MDP</h2>
+    <p class="quiz-subtitle">Com base na sua experiência na Masmorra, responda as perguntas abaixo. O histórico de suas jogadas permanece visível acima para consulta.</p>
+  </div>
+  <div id="quiz-form-wrap">
+    <div class="quiz-form" id="quiz-form"></div>
+    <div style="display:flex;justify-content:center;margin-top:1.2rem;">
+      <button class="btn-submit-quiz" onclick="submitQuiz()">✔ Ver Respostas Corretas</button>
+    </div>
+  </div>
+  <div id="quiz-results" class="quiz-results" style="display:none;"></div>
 </div>
 
 <script>
@@ -815,6 +994,88 @@ function restartGame() {
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 updateUI();
+
+// ── QUIZ ──────────────────────────────────────────────────────────────────────
+
+const QUIZ_QUESTIONS = [
+  {
+    q: 'Quantas salas você acredita que esse mundo tenha?',
+    answer: '5 salas: Câmara de Entrada (s1), Câmara de Brasa (s2), Corredor Nebuloso (s3), Salão Esverdeado (s4) e Saída da Masmorra (sT).'
+  },
+  {
+    q: 'O que pode acontecer se você escolher a porta de ferro na entrada (s1)?',
+    answer: 'Você vai com certeza (probabilidade 1,0) para a Câmara de Brasa (s2), recebendo recompensa −5. A transição é determinística.'
+  },
+  {
+    q: 'O que pode acontecer se você escolher a porta de madeira na entrada (s1)?',
+    answer: 'A transição é estocástica: 70% de chance de ir ao Corredor Nebuloso (s3, recompensa −1) e 30% de chance de ir ao Salão Esverdeado (s4, recompensa −2).'
+  },
+  {
+    q: 'Qual é a recompensa de abrir a porta de ferro no Corredor Nebuloso (s3)?',
+    answer: 'A porta de ferro em s3 leva com certeza à Câmara de Brasa (s2), cuja recompensa é −5.'
+  },
+  {
+    q: 'A partir da entrada (s1), qual é a melhor sequência de ações?',
+    answer: 'Porta de ferro em s1 → Câmara de Brasa (s2, −5) → porta de madeira em s2 → Saída (sT, +10).'
+  },
+  {
+    q: 'Qual o total de recompensas obtidas ao seguir a sequência de ações que você propôs?',
+    answer: 'Seguindo a sequência ótima (ferro em s1 → s2, madeira em s2 → sT): −5 + 10 = +5 de recompensa total.'
+  }
+];
+
+function buildQuizForm() {
+  const form = document.getElementById('quiz-form');
+  form.innerHTML = QUIZ_QUESTIONS.map((item, i) => `
+    <div class="quiz-q">
+      <div class="quiz-q-label">Pergunta ${i + 1}</div>
+      <div class="quiz-q-text">${item.q}</div>
+      <textarea class="quiz-input" id="quiz-ans-${i}" placeholder="Escreva sua resposta aqui…" rows="2"></textarea>
+    </div>
+  `).join('');
+}
+
+function openQuiz() {
+  document.getElementById('win-overlay').classList.remove('active');
+  const section = document.getElementById('quiz-section');
+  section.classList.add('visible');
+  // Reset to form view in case already submitted
+  document.getElementById('quiz-form-wrap').style.display = '';
+  document.getElementById('quiz-results').style.display = 'none';
+  buildQuizForm();
+  requestAnimationFrame(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+}
+
+function submitQuiz() {
+  const results = document.getElementById('quiz-results');
+  results.innerHTML = QUIZ_QUESTIONS.map((item, i) => {
+    const userAnswer = (document.getElementById(`quiz-ans-${i}`)?.value ?? '').trim() || '(sem resposta)';
+    return `
+      <div class="quiz-result-card fade-up">
+        <div class="qr-q-label">Pergunta ${i + 1}</div>
+        <div class="qr-q-text">${item.q}</div>
+        <div class="qr-cols">
+          <div>
+            <div class="qr-col-label yours">Sua resposta</div>
+            <div class="qr-box">${escapeHtml(userAnswer)}</div>
+          </div>
+          <div>
+            <div class="qr-col-label correct">Resposta correta</div>
+            <div class="qr-box correct-box">${item.answer}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('quiz-form-wrap').style.display = 'none';
+  results.style.display = 'flex';
+  requestAnimationFrame(() => results.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 </script>
 </body>
 </html>
