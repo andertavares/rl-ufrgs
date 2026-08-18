@@ -309,6 +309,75 @@
     border-color: rgba(91, 33, 182, 0.28);
     box-shadow: inset 0 0 0 1px rgba(91, 33, 182, 0.06);
   }
+
+  /* RL Controls */
+  .rl-toggle-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .rl-toggle {
+    flex: 1;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.82rem;
+    border-radius: 8px;
+    font-weight: 700;
+    border: 1.5px solid var(--border2);
+    background: var(--bg2);
+    color: var(--text-muted);
+    transition: all 0.15s;
+  }
+  .rl-toggle.active-pi {
+    background: linear-gradient(180deg, #0e7490, #0c5e74);
+    color: #fff;
+    border-color: #0e7490;
+  }
+  .rl-toggle.active-vi {
+    background: linear-gradient(180deg, #7c3aed, #5b21b6);
+    color: #fff;
+    border-color: #5b21b6;
+  }
+  .rl-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+  .rl-row label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin: 0;
+    display: inline;
+  }
+  .rl-row input[type=number] {
+    width: 70px;
+    padding: 4px 6px;
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    margin: 0;
+  }
+  .rl-btn-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .rl-btn-row button {
+    flex: 1;
+    font-size: 0.78rem;
+    padding: 0.45rem 0.5rem;
+  }
+  .btn-cyan {
+    background: linear-gradient(180deg, #0891b2, #0e7490);
+    color: #fff;
+    border-color: #0e7490;
+  }
+  .btn-cyan:hover { background: linear-gradient(180deg, #0e7490, #0c5e74); }
+  .value-label text { font-family: 'Fira Code', monospace; }
 </style>
 </head>
 <body>
@@ -337,6 +406,7 @@
   <div id="sidebar"></div>
 </div>
 
+<script src="value_iter.js"></script>
 <script>
 const SVGNS = 'http://www.w3.org/2000/svg';
 const NODE_R = 32;
@@ -376,6 +446,13 @@ let selection = { type: null, id: null }; // 'state' | 'action'
 let formOpen = false;
 
 let undoStack = [];
+
+// ---------- ESTADO RL ----------
+let rlMode = null; // null | 'policy_iter' | 'value_iter'
+let stateValues = {}; // stateId -> number
+let rlPolicy = {};   // stateId -> actionId
+let rlGamma = 0.9;
+let rlN = 10;
 
 // Alças coletadas durante o desenho das arestas, renderizadas por cima de tudo
 // (garante prioridade de clique nas pontas/handles).
@@ -815,6 +892,52 @@ function renderNodesInto(svg){
     rewardText.textContent = `R=${state.reward}`;
     g.appendChild(rewardText);
 
+    // Exibe V(s) ao lado do nó quando RL está ativo
+    if (rlMode !== null && stateValues[state.id] !== undefined) {
+      const vg = document.createElementNS(SVGNS, 'g');
+      vg.setAttribute('class', 'value-label');
+      const vBg = document.createElementNS(SVGNS, 'rect');
+      const vVal = stateValues[state.id];
+      const vStr = 'V=' + vVal.toFixed(2);
+      const vW = vStr.length * 7 + 10;
+      vBg.setAttribute('x', NODE_R + 4);
+      vBg.setAttribute('y', -12);
+      vBg.setAttribute('width', vW);
+      vBg.setAttribute('height', 18);
+      vBg.setAttribute('rx', '4');
+      vBg.setAttribute('fill', rlMode === 'value_iter' ? '#ede9fe' : '#cffafe');
+      vBg.setAttribute('stroke', rlMode === 'value_iter' ? '#7c3aed' : '#0e7490');
+      vBg.setAttribute('stroke-width', '1');
+      vg.appendChild(vBg);
+      const vTxt = document.createElementNS(SVGNS, 'text');
+      vTxt.setAttribute('x', NODE_R + 4 + vW / 2);
+      vTxt.setAttribute('y', 2);
+      vTxt.setAttribute('text-anchor', 'middle');
+      vTxt.setAttribute('font-size', '11');
+      vTxt.setAttribute('font-weight', 'bold');
+      vTxt.setAttribute('fill', rlMode === 'value_iter' ? '#5b21b6' : '#0e7490');
+      vTxt.setAttribute('pointer-events', 'none');
+      vTxt.textContent = vStr;
+      vg.appendChild(vTxt);
+      g.appendChild(vg);
+    }
+
+    // Destaca a ação da política atual (para iteração de política)
+    if (rlMode === 'policy_iter' && rlPolicy[state.id] !== undefined) {
+      const policyAction = actions.find(a => a.id === rlPolicy[state.id]);
+      if (policyAction) {
+        const pLabel = document.createElementNS(SVGNS, 'text');
+        pLabel.setAttribute('text-anchor', 'middle');
+        pLabel.setAttribute('y', NODE_R + 16);
+        pLabel.setAttribute('font-size', '11');
+        pLabel.setAttribute('fill', '#0e7490');
+        pLabel.setAttribute('font-weight', 'bold');
+        pLabel.setAttribute('pointer-events', 'none');
+        pLabel.textContent = `π=${policyAction.name}`;
+        g.appendChild(pLabel);
+      }
+    }
+
     circle.addEventListener('mousedown', (e) => startStateDrag(e, state));
     hit.addEventListener('mousedown', (e) => startStateDrag(e, state));
 
@@ -1177,10 +1300,211 @@ function drawLabel(svg, x, y, text, color, onClick){
   svg.appendChild(g);
 }
 
+// ---------- PAINEL RL ----------
+function buildRLPanel() {
+  const panel = document.createElement('div');
+  panel.className = 'panel';
+  panel.innerHTML = '<h3>Controle RL</h3>';
+
+  // Toggle row
+  const toggleRow = document.createElement('div');
+  toggleRow.className = 'rl-toggle-row';
+
+  const btnPI = document.createElement('button');
+  btnPI.type = 'button';
+  btnPI.textContent = '🔁 Iteração de Política';
+  btnPI.className = 'rl-toggle' + (rlMode === 'policy_iter' ? ' active-pi' : '');
+  btnPI.title = 'Toggle: Iteração de Política';
+  btnPI.onclick = () => {
+    if (rlMode === 'policy_iter') {
+      rlMode = null;
+      stateValues = {};
+      rlPolicy = {};
+    } else {
+      rlMode = 'policy_iter';
+      stateValues = initValues(states);
+      rlPolicy = initPolicy(states, actions);
+    }
+    render();
+  };
+
+  const btnVI = document.createElement('button');
+  btnVI.type = 'button';
+  btnVI.textContent = '⚡ Iteração de Valor';
+  btnVI.className = 'rl-toggle' + (rlMode === 'value_iter' ? ' active-vi' : '');
+  btnVI.title = 'Toggle: Iteração de Valor';
+  btnVI.onclick = () => {
+    if (rlMode === 'value_iter') {
+      rlMode = null;
+      stateValues = {};
+      rlPolicy = {};
+    } else {
+      rlMode = 'value_iter';
+      stateValues = initValues(states);
+      rlPolicy = extractPolicy(states, actions, stateValues, rlGamma);
+    }
+    render();
+  };
+
+  toggleRow.appendChild(btnPI);
+  toggleRow.appendChild(btnVI);
+  panel.appendChild(toggleRow);
+
+  if (rlMode === null) {
+    const hint = document.createElement('p');
+    hint.className = 'hint';
+    hint.textContent = 'Ative um modo RL acima para iniciar o cálculo de valores e política.';
+    panel.appendChild(hint);
+    return panel;
+  }
+
+  // Parâmetros
+  const paramRow = document.createElement('div');
+  paramRow.className = 'rl-row';
+
+  const gammaLabel = document.createElement('label');
+  gammaLabel.textContent = 'γ:';
+  const gammaInput = document.createElement('input');
+  gammaInput.type = 'number'; gammaInput.min = '0.01'; gammaInput.max = '1'; gammaInput.step = '0.01';
+  gammaInput.value = rlGamma;
+  gammaInput.style.width = '64px';
+  gammaInput.oninput = () => { rlGamma = parseFloat(gammaInput.value) || 0.9; };
+
+  const nLabel = document.createElement('label');
+  nLabel.textContent = 'N:';
+  const nInput = document.createElement('input');
+  nInput.type = 'number'; nInput.min = '1'; nInput.step = '1';
+  nInput.value = rlN;
+  nInput.style.width = '64px';
+  nInput.oninput = () => { rlN = parseInt(nInput.value) || 10; };
+
+  paramRow.appendChild(gammaLabel); paramRow.appendChild(gammaInput);
+  paramRow.appendChild(nLabel); paramRow.appendChild(nInput);
+  panel.appendChild(paramRow);
+
+  // Botões de controle
+  const btnRow1 = document.createElement('div');
+  btnRow1.className = 'rl-btn-row';
+
+  if (rlMode === 'policy_iter') {
+    const btnEval1 = document.createElement('button');
+    btnEval1.type = 'button';
+    btnEval1.textContent = '▶ 1 passo avaliação';
+    btnEval1.className = 'btn-cyan';
+    btnEval1.title = 'Executa um passo de avaliação de política';
+    btnEval1.onclick = () => {
+      stateValues = policyEvalStep(states, actions, stateValues, rlPolicy, rlGamma);
+      render();
+    };
+
+    const btnEvalN = document.createElement('button');
+    btnEvalN.type = 'button';
+    btnEvalN.textContent = `▶▶ ${rlN} passos avaliação`;
+    btnEvalN.className = 'btn-cyan';
+    btnEvalN.title = `Executa ${rlN} passos de avaliação de política`;
+    btnEvalN.onclick = () => {
+      for (let i = 0; i < rlN; i++) {
+        stateValues = policyEvalStep(states, actions, stateValues, rlPolicy, rlGamma);
+      }
+      render();
+    };
+
+    const btnImprove = document.createElement('button');
+    btnImprove.type = 'button';
+    btnImprove.textContent = '✦ Melhorar Política';
+    btnImprove.className = 'btn-primary';
+    btnImprove.title = 'Executa um passo de melhoria de política';
+    btnImprove.onclick = () => {
+      rlPolicy = policyImprovement(states, actions, stateValues, rlGamma);
+      render();
+    };
+
+    btnRow1.appendChild(btnEval1);
+    btnRow1.appendChild(btnEvalN);
+    btnRow1.appendChild(btnImprove);
+  } else {
+    // value_iter mode
+    const btnVI1 = document.createElement('button');
+    btnVI1.type = 'button';
+    btnVI1.textContent = '▶ 1 passo VI';
+    btnVI1.className = 'btn-primary';
+    btnVI1.title = 'Executa um passo de iteração de valor';
+    btnVI1.onclick = () => {
+      stateValues = valueIterStep(states, actions, stateValues, rlGamma);
+      rlPolicy = extractPolicy(states, actions, stateValues, rlGamma);
+      render();
+    };
+
+    const btnVIN = document.createElement('button');
+    btnVIN.type = 'button';
+    btnVIN.textContent = `▶▶ ${rlN} passos VI`;
+    btnVIN.className = 'btn-primary';
+    btnVIN.title = `Executa ${rlN} passos de iteração de valor`;
+    btnVIN.onclick = () => {
+      for (let i = 0; i < rlN; i++) {
+        stateValues = valueIterStep(states, actions, stateValues, rlGamma);
+      }
+      rlPolicy = extractPolicy(states, actions, stateValues, rlGamma);
+      render();
+    };
+
+    btnRow1.appendChild(btnVI1);
+    btnRow1.appendChild(btnVIN);
+  }
+
+  panel.appendChild(btnRow1);
+
+  // Botão reset
+  const btnRowReset = document.createElement('div');
+  btnRowReset.className = 'rl-btn-row';
+  const btnReset = document.createElement('button');
+  btnReset.type = 'button';
+  btnReset.textContent = '↺ Resetar Valores';
+  btnReset.className = 'btn-danger';
+  btnReset.onclick = () => {
+    stateValues = initValues(states);
+    if (rlMode === 'policy_iter') {
+      rlPolicy = initPolicy(states, actions);
+    } else {
+      rlPolicy = extractPolicy(states, actions, stateValues, rlGamma);
+    }
+    render();
+  };
+  btnRowReset.appendChild(btnReset);
+  panel.appendChild(btnRowReset);
+
+  // Tabela de valores
+  if (states.length > 0) {
+    const table = document.createElement('div');
+    table.style.cssText = 'margin-top:10px;font-size:12px;';
+    const header = document.createElement('p');
+    header.style.cssText = 'font-weight:700;color:var(--text-muted);margin:0 0 4px 0;';
+    header.textContent = 'Valores V(s):';
+    table.appendChild(header);
+    states.forEach(s => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;justify-content:space-between;padding:2px 4px;border-radius:4px;';
+      if (rlMode === 'policy_iter' && rlPolicy[s.id] !== undefined) {
+        const pa = actions.find(a => a.id === rlPolicy[s.id]);
+        row.innerHTML = `<span style="color:var(--text-muted)">${s.name}${s.terminal ? ' 🏁' : ''}</span><span style="color:${rlMode==='value_iter'?'#5b21b6':'#0e7490'};font-weight:700">${(stateValues[s.id] !== undefined ? stateValues[s.id].toFixed(3) : '0.000')}${pa ? ` <span style="color:#888;font-size:10px">(π=${pa.name})</span>` : ''}</span>`;
+      } else {
+        row.innerHTML = `<span style="color:var(--text-muted)">${s.name}${s.terminal ? ' 🏁' : ''}</span><span style="color:${rlMode==='value_iter'?'#5b21b6':'#0e7490'};font-weight:700">${stateValues[s.id] !== undefined ? stateValues[s.id].toFixed(3) : '0.000'}</span>`;
+      }
+      table.appendChild(row);
+    });
+    panel.appendChild(table);
+  }
+
+  return panel;
+}
+
 // ---------- SIDEBAR ----------
 function renderSidebar(){
   const sidebar = document.getElementById('sidebar');
   sidebar.innerHTML = '';
+
+  // Painel RL sempre visível no topo
+  sidebar.appendChild(buildRLPanel());
 
   const listSection = document.createElement('div');
   listSection.className = 'panel';
