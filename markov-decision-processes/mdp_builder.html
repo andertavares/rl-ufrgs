@@ -1048,6 +1048,7 @@ function renderMultiTransitionAction(svg, from, action){
       if(to){
         const idx = targetIndex[tr.to] || 0;
         targetIndex[tr.to] = idx + 1;
+
         drawNodeToTargetEdge(svg, node, to, action, tr, idx);
         return;
       }
@@ -1114,6 +1115,35 @@ function drawNodeToTargetEdge(svg, node, target, action, tr, idx){
   const ly = 0.25 * nsy + 0.5 * my + 0.25 * ey;
   const label = `p=${tr.prob.toFixed(2)}`;
   drawLabel(svg, lx, ly, label, color, () => openActionForm(action.id));
+}
+
+function drawNodeToSelfLoopEdge(svg, node, action, tr, idx){
+  const color = colorForAction(action.id);
+  const direction = idx % 2 === 0 ? 1 : -1;
+  const loopRadius = 30 + idx * 12;
+  const startX = node.x + direction * (ACTION_SQ + 16);
+  const startY = node.y - ACTION_SQ * 0.8;
+  const endX = node.x + direction * (ACTION_SQ + 16);
+  const endY = node.y + ACTION_SQ * 0.8;
+  const cx1 = node.x + direction * (loopRadius + 34);
+  const cy1 = node.y - loopRadius;
+  const cx2 = node.x + direction * (loopRadius + 34);
+  const cy2 = node.y + loopRadius;
+
+  const path = document.createElementNS(SVGNS, 'path');
+  path.setAttribute('d', `M ${startX} ${startY} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${endX} ${endY}`);
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', color);
+  path.setAttribute('stroke-width', '2');
+  path.setAttribute('stroke-dasharray', '6,5');
+  path.setAttribute('marker-end', 'url(#arrow)');
+  path.style.cursor = 'pointer';
+  path.addEventListener('mousedown', (e) => { e.stopPropagation(); openActionForm(action.id); });
+  svg.appendChild(path);
+
+  const labelX = node.x + direction * (loopRadius + 42);
+  const labelY = node.y - loopRadius - 10;
+  drawLabel(svg, labelX, labelY, `p=${tr.prob.toFixed(2)}`, color, () => openActionForm(action.id));
 }
 
 // Ramo pendente saindo do nó ◇, em leque, com alça arrastável na ponta.

@@ -1,0 +1,73 @@
+{
+  "states": [
+    {
+      "id": 1,
+      "name": "hungry",
+      "x": 554,
+      "y": 228.640625,
+      "reward": -1,
+      "terminal": false,
+      "color": "#ffffff"
+    },
+    {
+      "id": 2,
+      "name": "full",
+      "x": 760,
+      "y": 230.640625,
+      "reward": 0,
+      "terminal": false,
+      "color": "#fcd34d"
+    },
+    {
+      "id": 3,
+      "name": "starve",
+      "x": 369,
+      "y": 231.640625,
+      "reward": -10,
+      "terminal": false,
+      "color": "#ffffff"
+    }
+  ],
+  "actions": [
+    {
+      "id": 1,
+      "stateId": 1,
+      "name": "a1",
+      "node": {
+        "x": 656,
+        "y": 226.640625
+      },
+      "transitions": [
+        {
+          "to": 2,
+          "prob": 0.1
+        },
+        {
+          "to": 1,
+          "prob": 0.9
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "stateId": 1,
+      "name": "a2",
+      "node": {
+        "x": 461.5,
+        "y": 230.140625
+      },
+      "transitions": [
+        {
+          "to": 3,
+          "prob": 0.1
+        },
+        {
+          "to": 1,
+          "prob": 0.9
+        }
+      ]
+    }
+  ],
+  "nextStateId": 4,
+  "nextActionId": 3
+}
