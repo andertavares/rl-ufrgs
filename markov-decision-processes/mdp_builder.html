@@ -810,7 +810,12 @@ function renderNodesInto(svg){
     rewardText.setAttribute('text-anchor', 'middle');
     rewardText.setAttribute('y', '16');
     rewardText.setAttribute('font-size', '13');
-    rewardText.setAttribute('fill', '#555');
+    rewardText.setAttribute('font-weight', '600');
+    rewardText.setAttribute('fill', '#2f3744');
+    rewardText.setAttribute('stroke', '#f4f4f5');
+    rewardText.setAttribute('stroke-width', '5');
+    
+    rewardText.setAttribute('paint-order', 'stroke fill');
     rewardText.setAttribute('pointer-events', 'none');
     rewardText.textContent = `R=${state.reward}`;
     g.appendChild(rewardText);
