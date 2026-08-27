@@ -436,6 +436,58 @@ function normalizeStateColor(state){
   const valid = stateColorOptions().map(opt => opt.value);
   return valid.includes(state.color) ? state.color : '#ffffff';
 }
+function buildDefaultAnchors(state){
+  const count = 8;
+  return Array.from({ length: count }, (_, i) => {
+    const angle = (Math.PI * 2 * i) / count - Math.PI / 2;
+    const x = state.x + Math.cos(angle) * NODE_R;
+    const y = state.y + Math.sin(angle) * NODE_R;
+    return { x, y };
+  });
+}
+function ensureStateAnchors(state){
+  if(!state) return [];
+  if(!Array.isArray(state.anchors) || state.anchors.length === 0){
+    state.anchors = buildDefaultAnchors(state);
+  }
+  state.anchors = state.anchors.map(anchor => ({
+    x: Number(anchor.x) || state.x,
+    y: Number(anchor.y) || state.y
+  }));
+  return state.anchors;
+}
+function getStateAnchor(state, action, fallbackIndex = 0){
+  const anchors = ensureStateAnchors(state);
+  if(!anchors.length) return { x: state.x, y: state.y };
+  const selected = Number(action && action.anchorIndex !== undefined ? action.anchorIndex : fallbackIndex);
+  const index = Number.isFinite(selected) ? selected % anchors.length : fallbackIndex % anchors.length;
+  return anchors[index];
+}
+function projectPointToStateBorder(state, x, y){
+  const dx = x - state.x;
+  const dy = y - state.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const ux = dx / dist;
+  const uy = dy / dist;
+  return {
+    x: state.x + ux * NODE_R,
+    y: state.y + uy * NODE_R
+  };
+}
+function nearestAnchorIndex(state, x, y){
+  const anchors = ensureStateAnchors(state);
+  if(!anchors.length) return 0;
+  let bestIndex = 0;
+  let bestDistance = Infinity;
+  anchors.forEach((anchor, index) => {
+    const distance = Math.hypot(anchor.x - x, anchor.y - y);
+    if(distance < bestDistance){
+      bestDistance = distance;
+      bestIndex = index;
+    }
+  });
+  return bestIndex;
+}
 function offsetForIndex(n){
   if(n===0) return 0;
   const sign = n % 2 === 1 ? 1 : -1;
@@ -512,7 +564,8 @@ function clearSelection(){
 function addStateAt(x, y){
   pushHistory();
   const id = nextStateId++;
-  states.push({ id, name: 's' + id, x, y, reward: 0, terminal: false, color: '#ffffff' });
+  const state = { id, name: 's' + id, x, y, reward: 0, terminal: false, color: '#ffffff', anchors: buildDefaultAnchors({ x, y }) };
+  states.push(state);
   selection = { type: 'state', id };
   formOpen = false;
   render();
@@ -611,7 +664,26 @@ function renderSVG(){
   svgEl.appendChild(defs);
 
   svgEl.onmousedown = (e) => {
-    if(e.target !== svgEl) return;
+    const target = e.target;
+    const isInteractiveTarget = target && target.closest && (
+      target.closest('[data-action-handle]') ||
+      target.closest('[data-anchor-hit]') ||
+      target.closest('[data-edge-hit]') ||
+      target.closest('[data-state-hit]')
+    );
+
+    if(isInteractiveTarget){
+      e.stopPropagation();
+      e.preventDefault();
+      return;
+    }
+
+    if(target && target !== svgEl && target !== svgEl.ownerSVGElement && target.closest && !target.closest('svg')){
+      return;
+    }
+
+    e.stopPropagation();
+    e.preventDefault();
     const rect = svgEl.getBoundingClientRect();
     const p = svgPointFromEvent(e, rect);
     addStateAt(p.x, p.y);
@@ -648,8 +720,15 @@ function startStateDrag(e, state){
       pushHistory();
     }
     if(moved){
-      state.x = ev.clientX - r.left - offsetX;
-      state.y = ev.clientY - r.top - offsetY;
+      const nextX = ev.clientX - r.left - offsetX;
+      const nextY = ev.clientY - r.top - offsetY;
+      const dx = nextX - state.x;
+      const dy = nextY - state.y;
+      state.x = nextX;
+      state.y = nextY;
+      if(Array.isArray(state.anchors)){
+        state.anchors = state.anchors.map(anchor => ({ x: anchor.x + dx, y: anchor.y + dy }));
+      }
       renderSVG();
     }
   }
@@ -667,6 +746,8 @@ function startStateDrag(e, state){
 function startHandleDrag(e, action, anchorPoint){
   e.stopPropagation();
   e.preventDefault();
+  const from = states.find(s => s.id === action.stateId);
+  if(!from) return;
   const startClientX = e.clientX, startClientY = e.clientY;
   let moved = false;
   let tempLine = null;
@@ -701,6 +782,12 @@ function startHandleDrag(e, action, anchorPoint){
     const dropTarget = findDropTarget(ev);
     if(dropTarget && dropTarget.type === 'state'){
       pushHistory();
+      const targetState = states.find(s => s.id === dropTarget.id);
+      const pointer = svgPointFromEvent(ev, svgEl.getBoundingClientRect());
+      const targetBorder = targetState ? projectPointToStateBorder(targetState, pointer.x, pointer.y) : null;
+      const sourceBorder = projectPointToStateBorder(from, anchorPoint.x, anchorPoint.y);
+      action.anchorTo = targetState ? nearestAnchorIndex(targetState, targetBorder.x, targetBorder.y) : 0;
+      action.anchorFrom = nearestAnchorIndex(from, sourceBorder.x, sourceBorder.y);
       action.transitions = [ { to: dropTarget.id, prob: 1 } ];
       render();
     } else {
@@ -757,8 +844,12 @@ function startAssignDrag(e, action, transition, anchorPoint){
         render();
         return;
       }
+      const targetState = states.find(s => s.id === dropTarget.id);
       pushHistory();
       transition.to = dropTarget.id;
+      const pointer = svgPointFromEvent(ev, svgEl.getBoundingClientRect());
+      const targetBorder = targetState ? projectPointToStateBorder(targetState, pointer.x, pointer.y) : null;
+      action.anchorTo = targetState ? nearestAnchorIndex(targetState, targetBorder.x, targetBorder.y) : 0;
       normalizeEqually(action);
       render();
     } else {
@@ -805,6 +896,7 @@ function startDiamondDrag(e, action){
 // ---------- NÓS (ESTADOS) ----------
 function renderNodesInto(svg){
   states.forEach(state => {
+    ensureStateAnchors(state);
     const g = document.createElementNS(SVGNS, 'g');
     g.setAttribute('transform', `translate(${state.x},${state.y})`);
 
@@ -852,11 +944,47 @@ function renderNodesInto(svg){
     rewardText.setAttribute('fill', '#2f3744');
     rewardText.setAttribute('stroke', '#f4f4f5');
     rewardText.setAttribute('stroke-width', '5');
-    
     rewardText.setAttribute('paint-order', 'stroke fill');
     rewardText.setAttribute('pointer-events', 'none');
     rewardText.textContent = `R=${state.reward}`;
     g.appendChild(rewardText);
+
+    state.anchors.forEach((anchor, idx) => {
+      const anchorG = document.createElementNS(SVGNS, 'g');
+      anchorG.style.cursor = 'pointer';
+
+      const anchorDot = document.createElementNS(SVGNS, 'circle');
+      anchorDot.setAttribute('cx', anchor.x - state.x);
+      anchorDot.setAttribute('cy', anchor.y - state.y);
+      anchorDot.setAttribute('r', 4);
+      anchorDot.setAttribute('fill', '#ffffff');
+      anchorDot.setAttribute('stroke', '#2563eb');
+      anchorDot.setAttribute('stroke-width', '2');
+      anchorDot.setAttribute('filter', 'drop-shadow(0 0 2px rgba(37,99,235,.6))');
+      anchorDot.setAttribute('data-anchor-hit', 'true');
+      anchorDot.setAttribute('pointer-events', 'all');
+      anchorG.setAttribute('pointer-events', 'all');
+      anchorG.appendChild(anchorDot);
+
+      if(isSelected){
+        const ring = document.createElementNS(SVGNS, 'circle');
+        ring.setAttribute('cx', anchor.x - state.x);
+        ring.setAttribute('cy', anchor.y - state.y);
+        ring.setAttribute('r', 9);
+        ring.setAttribute('fill', 'none');
+        ring.setAttribute('stroke', '#60a5fa');
+        ring.setAttribute('stroke-width', '1.5');
+        ring.setAttribute('stroke-dasharray', '3 2');
+        ring.setAttribute('pointer-events', 'none');
+        anchorG.appendChild(ring);
+      }
+
+      anchorG.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        startAnchorDrag(e, state, idx);
+      });
+      g.appendChild(anchorG);
+    });
 
     circle.addEventListener('mousedown', (e) => startStateDrag(e, state));
     hit.addEventListener('mousedown', (e) => startStateDrag(e, state));
@@ -949,18 +1077,22 @@ function drawDirectEdge(svg, from, to, action, idx, sharedCounts){
   const sharedEndCount = sharedCounts.end[endpointKey(to)] || 1;
   const useCurve = sharedStartCount > 1 || sharedEndCount > 1;
   const offset = useCurve ? 30 + Math.abs(idx * 18) : offsetForIndex(idx);
-  const mx = (from.x + to.x) / 2 + nx * offset;
-  const my = (from.y + to.y) / 2 + ny * offset;
+  const anchorFromIndex = Number.isInteger(action.anchorFrom) ? action.anchorFrom : idx;
+  const anchorToIndex = Number.isInteger(action.anchorTo) ? action.anchorTo : idx;
+  const start = getStateAnchor(from, action, anchorFromIndex);
+  const end = getStateAnchor(to, action, anchorToIndex);
+  const mx = (start.x + end.x) / 2 + nx * offset;
+  const my = (start.y + end.y) / 2 + ny * offset;
 
-  let d1x = mx - from.x, d1y = my - from.y;
+  let d1x = mx - start.x, d1y = my - start.y;
   let l1 = Math.hypot(d1x, d1y) || 1;
-  const sx = from.x + (d1x / l1) * NODE_R;
-  const sy = from.y + (d1y / l1) * NODE_R;
+  const sx = start.x + (d1x / l1) * 6;
+  const sy = start.y + (d1y / l1) * 6;
 
-  let d2x = to.x - mx, d2y = to.y - my;
+  let d2x = end.x - mx, d2y = end.y - my;
   let l2 = Math.hypot(d2x, d2y) || 1;
-  const ex = to.x - (d2x / l2) * NODE_R;
-  const ey = to.y - (d2y / l2) * NODE_R;
+  const ex = end.x - (d2x / l2) * 6;
+  const ey = end.y - (d2y / l2) * 6;
 
   const path = document.createElementNS(SVGNS, 'path');
   path.setAttribute('d', `M ${sx} ${sy} Q ${mx} ${my} ${ex} ${ey}`);
@@ -968,7 +1100,9 @@ function drawDirectEdge(svg, from, to, action, idx, sharedCounts){
   path.setAttribute('stroke', color);
   path.setAttribute('stroke-width', '2');
   path.setAttribute('marker-end', 'url(#arrow)');
+  path.setAttribute('data-edge-hit', 'true');
   path.style.cursor = 'pointer';
+  path.style.pointerEvents = 'stroke';
   path.addEventListener('mousedown', (e) => { e.stopPropagation(); openActionForm(action.id); });
   svg.appendChild(path);
 
@@ -977,10 +1111,58 @@ function drawDirectEdge(svg, from, to, action, idx, sharedCounts){
   drawLabel(svg, lx, ly, action.name, color, () => openActionForm(action.id));
 
   pendingHandles.push({
+    point: { x: start.x, y: start.y },
+    color,
+    onMouseDown: (e) => startHandleDrag(e, action, { x: start.x, y: start.y })
+  });
+
+  pendingHandles.push({
     point: { x: ex, y: ey },
     color,
     onMouseDown: (e) => startHandleDrag(e, action, { x: ex, y: ey })
   });
+}
+
+function startAnchorDrag(e, state, anchorIndex){
+  e.stopPropagation();
+  const anchor = ensureStateAnchors(state)[anchorIndex];
+  if(!anchor) return;
+  const rect = svgEl.getBoundingClientRect();
+  const startLocalX = e.clientX - rect.left - state.x;
+  const startLocalY = e.clientY - rect.top - state.y;
+  const initialX = anchor.x - state.x;
+  const initialY = anchor.y - state.y;
+  const offsetX = startLocalX - initialX;
+  const offsetY = startLocalY - initialY;
+
+  function onMove(ev){
+    const r = svgEl.getBoundingClientRect();
+    let nextX = ev.clientX - r.left - state.x - offsetX;
+    let nextY = ev.clientY - r.top - state.y - offsetY;
+    const distance = Math.hypot(nextX, nextY) || 1;
+    const maxRadius = NODE_R + 10;
+    const minRadius = NODE_R + 1;
+    const clamped = Math.min(Math.max(distance, minRadius), maxRadius);
+    if(distance > 0){
+      nextX = (nextX / distance) * clamped;
+      nextY = (nextY / distance) * clamped;
+    } else {
+      nextX = minRadius;
+      nextY = 0;
+    }
+    anchor.x = state.x + nextX;
+    anchor.y = state.y + nextY;
+    renderSVG();
+  }
+
+  function onUp(){
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    render();
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
 }
 
 function drawSelfLoopDirect(svg, node, action, idx){
@@ -1043,6 +1225,9 @@ function renderPendingHandles(svg){
     hit.setAttribute('cx', point.x); hit.setAttribute('cy', point.y);
     hit.setAttribute('r', HANDLE_HIT_R);
     hit.setAttribute('fill', 'transparent');
+    hit.setAttribute('data-action-handle', 'true');
+    hit.setAttribute('pointer-events', 'all');
+    g.setAttribute('pointer-events', 'all');
     g.appendChild(hit);
 
     const dot = document.createElementNS(SVGNS, 'circle');
@@ -1051,6 +1236,8 @@ function renderPendingHandles(svg){
     dot.setAttribute('fill', '#fff');
     dot.setAttribute('stroke', color);
     dot.setAttribute('stroke-width', '2');
+    dot.setAttribute('data-action-handle', 'true');
+    dot.setAttribute('pointer-events', 'all');
     g.appendChild(dot);
 
     g.addEventListener('mousedown', onMouseDown);
@@ -1312,6 +1499,34 @@ function buildStatePanel(state){
 
   const editFlag = { done: false };
 
+  const anchorsLabel = document.createElement('label');
+  anchorsLabel.textContent = 'Âncoras do estado:';
+  const anchorsRow = document.createElement('div');
+  anchorsRow.className = 'btn-row';
+
+  const addAnchorBtn = document.createElement('button');
+  addAnchorBtn.type = 'button';
+  addAnchorBtn.textContent = '+ Âncora';
+  addAnchorBtn.onclick = () => {
+    const current = ensureStateAnchors(state);
+    const offset = current.length * 16;
+    current.push({ x: state.x + offset % 120, y: state.y - 50 + (current.length % 2) * 30 });
+    render();
+  };
+
+  const resetAnchorsBtn = document.createElement('button');
+  resetAnchorsBtn.type = 'button';
+  resetAnchorsBtn.textContent = 'Resetar';
+  resetAnchorsBtn.onclick = () => {
+    state.anchors = buildDefaultAnchors(state);
+    render();
+  };
+
+  anchorsRow.appendChild(addAnchorBtn);
+  anchorsRow.appendChild(resetAnchorsBtn);
+  panel.appendChild(anchorsLabel);
+  panel.appendChild(anchorsRow);
+
   const nameLabel = document.createElement('label'); nameLabel.textContent = 'Nome:';
   const nameInput = document.createElement('input');
   nameInput.type = 'text'; nameInput.value = state.name;
@@ -1459,6 +1674,42 @@ function buildActionFormPanel(){
     renderSVG();
   };
   panel.appendChild(nameLabel); panel.appendChild(nameInput);
+
+  const anchorBox = document.createElement('div');
+  anchorBox.style.margin = '10px 0';
+
+  const anchorSourceLabel = document.createElement('label');
+  anchorSourceLabel.textContent = 'Âncora de origem (estado de saída):';
+  const anchorSourceSelect = document.createElement('select');
+  for(let i=0;i<8;i++){
+    const option = document.createElement('option');
+    option.value = String(i);
+    option.textContent = `Ponto ${i + 1}`;
+    anchorSourceSelect.appendChild(option);
+  }
+  anchorSourceSelect.value = String(Number.isInteger(existing.anchorFrom) ? existing.anchorFrom : 0);
+  anchorSourceSelect.onchange = () => {
+    existing.anchorFrom = Number(anchorSourceSelect.value);
+    renderSVG();
+  };
+  anchorBox.appendChild(anchorSourceLabel); anchorBox.appendChild(anchorSourceSelect);
+
+  const anchorTargetLabel = document.createElement('label');
+  anchorTargetLabel.textContent = 'Âncora de destino (estado alvo):';
+  const anchorTargetSelect = document.createElement('select');
+  for(let i=0;i<8;i++){
+    const option = document.createElement('option');
+    option.value = String(i);
+    option.textContent = `Ponto ${i + 1}`;
+    anchorTargetSelect.appendChild(option);
+  }
+  anchorTargetSelect.value = String(Number.isInteger(existing.anchorTo) ? existing.anchorTo : 0);
+  anchorTargetSelect.onchange = () => {
+    existing.anchorTo = Number(anchorTargetSelect.value);
+    renderSVG();
+  };
+  anchorBox.appendChild(anchorTargetLabel); anchorBox.appendChild(anchorTargetSelect);
+  panel.appendChild(anchorBox);
 
   const transHeader = document.createElement('label');
   transHeader.textContent = 'Transições (destino / probabilidade):';
@@ -1648,9 +1899,14 @@ function applyImportedData(data){
   if(!data || typeof data !== 'object') throw new Error('JSON inválido.');
   const importedStates = (data.states || []).map(s => ({
     ...s,
-    color: normalizeStateColor(s)
+    color: normalizeStateColor(s),
+    anchors: Array.isArray(s.anchors) && s.anchors.length ? s.anchors.map(a => ({ x: Number(a.x) || s.x, y: Number(a.y) || s.y })) : buildDefaultAnchors(s)
   }));
-  const importedActions = data.actions || [];
+  const importedActions = (data.actions || []).map(action => ({
+    ...action,
+    anchorFrom: Number.isInteger(action.anchorFrom) ? action.anchorFrom : 0,
+    anchorTo: Number.isInteger(action.anchorTo) ? action.anchorTo : 0
+  }));
 
   pushHistory();
   states = importedStates;
