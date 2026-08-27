@@ -743,7 +743,7 @@ function startStateDrag(e, state){
 }
 
 // ---------- ARRASTAR ALÇA (ação com 0 ou 1 transição) — redireciona destino único ----------
-function startHandleDrag(e, action, anchorPoint){
+function startHandleDrag(e, action, anchorPoint, endpoint = 'target'){
   e.stopPropagation();
   e.preventDefault();
   const from = states.find(s => s.id === action.stateId);
@@ -759,7 +759,9 @@ function startHandleDrag(e, action, anchorPoint){
       tempLine = document.createElementNS(SVGNS, 'line');
       tempLine.setAttribute('stroke', colorForAction(action.id));
       tempLine.setAttribute('stroke-width', '2');
-      tempLine.setAttribute('stroke-dasharray', '5,4');
+      tempLine.setAttribute('stroke-linecap', 'round');
+      tempLine.setAttribute('opacity', '0.45');
+      tempLine.setAttribute('marker-end', 'url(#arrow)');
       tempLine.setAttribute('x1', anchorPoint.x); tempLine.setAttribute('y1', anchorPoint.y);
       svgEl.appendChild(tempLine);
     }
@@ -784,6 +786,15 @@ function startHandleDrag(e, action, anchorPoint){
       pushHistory();
       const targetState = states.find(s => s.id === dropTarget.id);
       const pointer = svgPointFromEvent(ev, svgEl.getBoundingClientRect());
+
+      if(endpoint === 'source'){
+        action.stateId = targetState.id;
+        action.anchorFrom = targetState ? nearestAnchorIndex(targetState, pointer.x, pointer.y) : 0;
+        action.transitions = action.transitions.map(tr => ({ ...tr, to: tr.to === null ? null : tr.to }));
+        render();
+        return;
+      }
+
       const targetBorder = targetState ? projectPointToStateBorder(targetState, pointer.x, pointer.y) : null;
       const sourceBorder = projectPointToStateBorder(from, anchorPoint.x, anchorPoint.y);
       action.anchorTo = targetState ? nearestAnchorIndex(targetState, targetBorder.x, targetBorder.y) : 0;
@@ -1113,13 +1124,15 @@ function drawDirectEdge(svg, from, to, action, idx, sharedCounts){
   pendingHandles.push({
     point: { x: start.x, y: start.y },
     color,
-    onMouseDown: (e) => startHandleDrag(e, action, { x: start.x, y: start.y })
+    endpoint: 'source',
+    onMouseDown: (e) => startHandleDrag(e, action, { x: start.x, y: start.y }, 'source')
   });
 
   pendingHandles.push({
     point: { x: ex, y: ey },
     color,
-    onMouseDown: (e) => startHandleDrag(e, action, { x: ex, y: ey })
+    endpoint: 'target',
+    onMouseDown: (e) => startHandleDrag(e, action, { x: ex, y: ey }, 'target')
   });
 }
 
@@ -1217,7 +1230,7 @@ function drawPendingHandle(svg, from, action){
 
 // Desenha todas as alças coletadas, por CIMA de estados/arestas.
 function renderPendingHandles(svg){
-  pendingHandles.forEach(({ point, color, onMouseDown }) => {
+  pendingHandles.forEach(({ point, color, endpoint, onMouseDown }) => {
     const g = document.createElementNS(SVGNS, 'g');
     g.style.cursor = 'grab';
 
@@ -1225,7 +1238,7 @@ function renderPendingHandles(svg){
     hit.setAttribute('cx', point.x); hit.setAttribute('cy', point.y);
     hit.setAttribute('r', HANDLE_HIT_R);
     hit.setAttribute('fill', 'transparent');
-    hit.setAttribute('data-action-handle', 'true');
+    hit.setAttribute('data-action-handle', endpoint || 'handle');
     hit.setAttribute('pointer-events', 'all');
     g.setAttribute('pointer-events', 'all');
     g.appendChild(hit);
@@ -1236,7 +1249,7 @@ function renderPendingHandles(svg){
     dot.setAttribute('fill', '#fff');
     dot.setAttribute('stroke', color);
     dot.setAttribute('stroke-width', '2');
-    dot.setAttribute('data-action-handle', 'true');
+    dot.setAttribute('data-action-handle', endpoint || 'handle');
     dot.setAttribute('pointer-events', 'all');
     g.appendChild(dot);
 
