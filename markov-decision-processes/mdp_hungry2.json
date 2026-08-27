@@ -1,0 +1,112 @@
+{
+  "states": [
+    {
+      "id": 1,
+      "name": "hungry",
+      "x": 554,
+      "y": 228.640625,
+      "reward": -1,
+      "terminal": false,
+      "color": "#ffffff"
+    },
+    {
+      "id": 2,
+      "name": "full",
+      "x": 760,
+      "y": 230.640625,
+      "reward": 0,
+      "terminal": false,
+      "color": "#fcd34d"
+    },
+    {
+      "id": 3,
+      "name": "starve",
+      "x": 369,
+      "y": 231.640625,
+      "reward": -10,
+      "terminal": false,
+      "color": "#ffffff"
+    },
+    {
+      "id": 4,
+      "name": "near full",
+      "x": 763,
+      "y": 348.78125,
+      "reward": 2,
+      "terminal": false,
+      "color": "#ffffff"
+    }
+  ],
+  "actions": [
+    {
+      "id": 1,
+      "stateId": 1,
+      "name": "a1",
+      "node": {
+        "x": 656,
+        "y": 226.640625
+      },
+      "transitions": [
+        {
+          "to": 2,
+          "prob": 0.1
+        },
+        {
+          "to": 1,
+          "prob": 0.9
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "stateId": 1,
+      "name": "a2",
+      "node": {
+        "x": 461.5,
+        "y": 230.140625
+      },
+      "transitions": [
+        {
+          "to": 3,
+          "prob": 0.1
+        },
+        {
+          "to": 1,
+          "prob": 0.9
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "stateId": 4,
+      "name": "eat",
+      "node": {
+        "x": 823.7106781186548,
+        "y": 279.07057188134524
+      },
+      "transitions": [
+        {
+          "to": 2,
+          "prob": 1
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "stateId": 4,
+      "name": "don't eat",
+      "node": {
+        "x": 791.15395311427,
+        "y": 252.82628700152094
+      },
+      "transitions": [
+        {
+          "to": 1,
+          "prob": 1
+        }
+      ]
+    }
+  ],
+  "nextStateId": 6,
+  "nextActionId": 8
+}
