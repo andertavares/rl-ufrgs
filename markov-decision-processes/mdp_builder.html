@@ -486,7 +486,32 @@ function nearestAnchorIndex(state, x, y){
       bestIndex = index;
     }
   });
-  return bestIndex;
+
+  const tolerance = 30;
+  if(bestDistance <= tolerance) return bestIndex;
+
+  const angle = Math.atan2(y - state.y, x - state.x);
+  const normalized = ((angle + Math.PI / 2) / (Math.PI * 2) + 1) % 1;
+  return Math.round(normalized * anchors.length) % anchors.length;
+}
+
+function findAnchorSnapPreview(x, y){
+  let best = null;
+  let bestDistance = Infinity;
+
+  states.forEach(state => {
+    const anchors = ensureStateAnchors(state);
+    anchors.forEach((anchor, index) => {
+      const distance = Math.hypot(anchor.x - x, anchor.y - y);
+      if(distance < bestDistance){
+        bestDistance = distance;
+        best = { state, index, point: { x: anchor.x, y: anchor.y } };
+      }
+    });
+  });
+
+  if(!best || bestDistance > 36) return null;
+  return best;
 }
 function offsetForIndex(n){
   if(n===0) return 0;
@@ -610,6 +635,25 @@ function deleteAction(id){
   render();
 }
 
+function createActionFromAnchor(state, anchorIndex){
+  pushHistory();
+  const id = nextActionId++;
+  const anchor = ensureStateAnchors(state)[anchorIndex] || { x: state.x + NODE_R, y: state.y };
+  const action = {
+    id,
+    stateId: state.id,
+    name: 'a' + id,
+    node: { x: anchor.x + 90, y: anchor.y - 60 },
+    anchorFrom: anchorIndex,
+    anchorTo: 0,
+    transitions: [{ to: null, prob: 1 }]
+  };
+  actions.push(action);
+  selection = { type: 'action', id };
+  formOpen = true;
+  render();
+}
+
 // Chamada pelo botão "+ Adicionar Transição" do painel.
 // Se a ação tinha 1 transição válida: posiciona o nó ◇ no MEIO do caminho atual
 // (entre origem e destino já conectado, ou acima do estado no caso de loop),
@@ -698,6 +742,13 @@ function renderSVG(){
 function findDropTarget(ev){
   const el = document.elementFromPoint(ev.clientX, ev.clientY);
   if(!el) return null;
+
+  const anchorEl = el.closest('[data-anchor-hit]');
+  if(anchorEl) {
+    const owner = anchorEl.closest('[data-state-hit]');
+    if(owner) return { type: 'state', id: parseInt(owner.getAttribute('data-state-hit')) };
+  }
+
   const stateEl = el.closest('[data-state-hit]');
   if(stateEl) return { type: 'state', id: parseInt(stateEl.getAttribute('data-state-hit')) };
   if(el.closest('#canvas')) return { type: 'empty' };
@@ -751,6 +802,8 @@ function startHandleDrag(e, action, anchorPoint, endpoint = 'target'){
   const startClientX = e.clientX, startClientY = e.clientY;
   let moved = false;
   let tempLine = null;
+  let tempSnap = null;
+  let activeSnap = null;
 
   function onMove(ev){
     const r = svgEl.getBoundingClientRect();
@@ -767,7 +820,44 @@ function startHandleDrag(e, action, anchorPoint, endpoint = 'target'){
     }
     if(moved){
       const p = svgPointFromEvent(ev, r);
-      tempLine.setAttribute('x2', p.x); tempLine.setAttribute('y2', p.y);
+      activeSnap = findAnchorSnapPreview(p.x, p.y);
+      const snap = activeSnap;
+      if(tempSnap) tempSnap.remove();
+      if(snap){
+        tempSnap = document.createElementNS(SVGNS, 'g');
+        const ring = document.createElementNS(SVGNS, 'circle');
+        ring.setAttribute('cx', snap.point.x);
+        ring.setAttribute('cy', snap.point.y);
+        ring.setAttribute('r', 8);
+        ring.setAttribute('fill', 'none');
+        ring.setAttribute('stroke', '#2563eb');
+        ring.setAttribute('stroke-width', '2');
+        ring.setAttribute('stroke-dasharray', '3 2');
+        ring.setAttribute('opacity', '0.9');
+        tempSnap.appendChild(ring);
+
+        const dot = document.createElementNS(SVGNS, 'circle');
+        dot.setAttribute('cx', snap.point.x);
+        dot.setAttribute('cy', snap.point.y);
+        dot.setAttribute('r', 4);
+        dot.setAttribute('fill', '#fff');
+        dot.setAttribute('stroke', '#2563eb');
+        dot.setAttribute('stroke-width', '2');
+        tempSnap.appendChild(dot);
+        svgEl.appendChild(tempSnap);
+      }
+
+      if(endpoint === 'source'){
+        const targetState = action.transitions[0] && action.transitions[0].to !== null ? states.find(s => s.id === action.transitions[0].to) : null;
+        const fixedEnd = targetState ? getStateAnchor(targetState, action, Number.isInteger(action.anchorTo) ? action.anchorTo : 0) : anchorPoint;
+        tempLine.setAttribute('x1', p.x);
+        tempLine.setAttribute('y1', p.y);
+        tempLine.setAttribute('x2', fixedEnd.x);
+        tempLine.setAttribute('y2', fixedEnd.y);
+      } else {
+        tempLine.setAttribute('x2', p.x);
+        tempLine.setAttribute('y2', p.y);
+      }
     }
   }
 
@@ -775,6 +865,7 @@ function startHandleDrag(e, action, anchorPoint, endpoint = 'target'){
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup', onUp);
     if(tempLine) tempLine.remove();
+    if(tempSnap) tempSnap.remove();
 
     if(!moved){
       openActionForm(action.id);
@@ -782,28 +873,31 @@ function startHandleDrag(e, action, anchorPoint, endpoint = 'target'){
     }
 
     const dropTarget = findDropTarget(ev);
-    if(dropTarget && dropTarget.type === 'state'){
-      pushHistory();
-      const targetState = states.find(s => s.id === dropTarget.id);
-      const pointer = svgPointFromEvent(ev, svgEl.getBoundingClientRect());
+    const targetState = dropTarget && dropTarget.type === 'state' ? states.find(s => s.id === dropTarget.id) : null;
+    const pointer = svgPointFromEvent(ev, svgEl.getBoundingClientRect());
+    const snappedState = activeSnap && activeSnap.state ? activeSnap.state : targetState;
+    const snapPoint = activeSnap ? activeSnap.point : pointer;
 
+    if(snappedState){
+      pushHistory();
       if(endpoint === 'source'){
-        action.stateId = targetState.id;
-        action.anchorFrom = targetState ? nearestAnchorIndex(targetState, pointer.x, pointer.y) : 0;
+        action.stateId = snappedState.id;
+        action.anchorFrom = nearestAnchorIndex(snappedState, snapPoint.x, snapPoint.y);
         action.transitions = action.transitions.map(tr => ({ ...tr, to: tr.to === null ? null : tr.to }));
         render();
         return;
       }
 
-      const targetBorder = targetState ? projectPointToStateBorder(targetState, pointer.x, pointer.y) : null;
+      const targetBorder = projectPointToStateBorder(snappedState, snapPoint.x, snapPoint.y);
       const sourceBorder = projectPointToStateBorder(from, anchorPoint.x, anchorPoint.y);
-      action.anchorTo = targetState ? nearestAnchorIndex(targetState, targetBorder.x, targetBorder.y) : 0;
+      action.anchorTo = nearestAnchorIndex(snappedState, targetBorder.x, targetBorder.y);
       action.anchorFrom = nearestAnchorIndex(from, sourceBorder.x, sourceBorder.y);
-      action.transitions = [ { to: dropTarget.id, prob: 1 } ];
+      action.transitions = [ { to: snappedState.id, prob: 1 } ];
       render();
-    } else {
-      render();
+      return;
     }
+
+    render();
   }
 
   document.addEventListener('mousemove', onMove);
@@ -819,6 +913,8 @@ function startAssignDrag(e, action, transition, anchorPoint){
   const startClientX = e.clientX, startClientY = e.clientY;
   let moved = false;
   let tempLine = null;
+  let tempSnap = null;
+  let activeSnap = null;
 
   function onMove(ev){
     const r = svgEl.getBoundingClientRect();
@@ -827,12 +923,40 @@ function startAssignDrag(e, action, transition, anchorPoint){
       tempLine = document.createElementNS(SVGNS, 'line');
       tempLine.setAttribute('stroke', colorForAction(action.id));
       tempLine.setAttribute('stroke-width', '2');
-      tempLine.setAttribute('stroke-dasharray', '5,4');
+      tempLine.setAttribute('stroke-linecap', 'round');
+      tempLine.setAttribute('opacity', '0.45');
+      tempLine.setAttribute('marker-end', 'url(#arrow)');
       tempLine.setAttribute('x1', anchorPoint.x); tempLine.setAttribute('y1', anchorPoint.y);
       svgEl.appendChild(tempLine);
     }
     if(moved){
       const p = svgPointFromEvent(ev, r);
+      activeSnap = findAnchorSnapPreview(p.x, p.y);
+      const snap = activeSnap;
+      if(tempSnap) tempSnap.remove();
+      if(snap){
+        tempSnap = document.createElementNS(SVGNS, 'g');
+        const ring = document.createElementNS(SVGNS, 'circle');
+        ring.setAttribute('cx', snap.point.x);
+        ring.setAttribute('cy', snap.point.y);
+        ring.setAttribute('r', 8);
+        ring.setAttribute('fill', 'none');
+        ring.setAttribute('stroke', '#2563eb');
+        ring.setAttribute('stroke-width', '2');
+        ring.setAttribute('stroke-dasharray', '3 2');
+        ring.setAttribute('opacity', '0.9');
+        tempSnap.appendChild(ring);
+
+        const dot = document.createElementNS(SVGNS, 'circle');
+        dot.setAttribute('cx', snap.point.x);
+        dot.setAttribute('cy', snap.point.y);
+        dot.setAttribute('r', 4);
+        dot.setAttribute('fill', '#fff');
+        dot.setAttribute('stroke', '#2563eb');
+        dot.setAttribute('stroke-width', '2');
+        tempSnap.appendChild(dot);
+        svgEl.appendChild(tempSnap);
+      }
       tempLine.setAttribute('x2', p.x); tempLine.setAttribute('y2', p.y);
     }
   }
@@ -841,6 +965,7 @@ function startAssignDrag(e, action, transition, anchorPoint){
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup', onUp);
     if(tempLine) tempLine.remove();
+    if(tempSnap) tempSnap.remove();
 
     if(!moved){
       openActionForm(action.id);
@@ -857,10 +982,12 @@ function startAssignDrag(e, action, transition, anchorPoint){
       }
       const targetState = states.find(s => s.id === dropTarget.id);
       pushHistory();
-      transition.to = dropTarget.id;
       const pointer = svgPointFromEvent(ev, svgEl.getBoundingClientRect());
-      const targetBorder = targetState ? projectPointToStateBorder(targetState, pointer.x, pointer.y) : null;
-      action.anchorTo = targetState ? nearestAnchorIndex(targetState, targetBorder.x, targetBorder.y) : 0;
+      const snappedState = activeSnap && activeSnap.state ? activeSnap.state : targetState;
+      const snapPoint = activeSnap ? activeSnap.point : pointer;
+      transition.to = snappedState ? snappedState.id : dropTarget.id;
+      const targetBorder = snappedState ? projectPointToStateBorder(snappedState, snapPoint.x, snapPoint.y) : null;
+      action.anchorTo = snappedState ? nearestAnchorIndex(snappedState, targetBorder.x, targetBorder.y) : 0;
       normalizeEqually(action);
       render();
     } else {
@@ -910,6 +1037,7 @@ function renderNodesInto(svg){
     ensureStateAnchors(state);
     const g = document.createElementNS(SVGNS, 'g');
     g.setAttribute('transform', `translate(${state.x},${state.y})`);
+    g.setAttribute('data-state-hit', state.id);
 
     const hit = document.createElementNS(SVGNS, 'circle');
     hit.setAttribute('r', NODE_R);
@@ -963,6 +1091,7 @@ function renderNodesInto(svg){
     state.anchors.forEach((anchor, idx) => {
       const anchorG = document.createElementNS(SVGNS, 'g');
       anchorG.style.cursor = 'pointer';
+      anchorG.setAttribute('data-state-hit', state.id);
 
       const anchorDot = document.createElementNS(SVGNS, 'circle');
       anchorDot.setAttribute('cx', anchor.x - state.x);
@@ -973,6 +1102,7 @@ function renderNodesInto(svg){
       anchorDot.setAttribute('stroke-width', '2');
       anchorDot.setAttribute('filter', 'drop-shadow(0 0 2px rgba(37,99,235,.6))');
       anchorDot.setAttribute('data-anchor-hit', 'true');
+      anchorDot.setAttribute('data-state-hit', state.id);
       anchorDot.setAttribute('pointer-events', 'all');
       anchorG.setAttribute('pointer-events', 'all');
       anchorG.appendChild(anchorDot);
@@ -992,41 +1122,40 @@ function renderNodesInto(svg){
 
       anchorG.addEventListener('mousedown', (e) => {
         e.stopPropagation();
-        startAnchorDrag(e, state, idx);
+
+        const selectedAction = selection.type === 'action' ? actions.find(a => a.id === selection.id) : null;
+        const isSelectedActionSource = selectedAction && selectedAction.stateId === state.id && Number.isInteger(selectedAction.anchorFrom) && selectedAction.anchorFrom === idx;
+        const isSelectedActionTarget = selectedAction && selectedAction.transitions.some(tr => {
+          if(!tr || tr.to === null || tr.to === undefined) return false;
+          const targetState = states.find(s => s.id === tr.to);
+          return targetState && targetState.id === state.id && Number.isInteger(selectedAction.anchorTo) && selectedAction.anchorTo === idx;
+        });
+
+        if(isSelectedActionSource || isSelectedActionTarget){
+          startAnchorDrag(e, state, idx);
+          return;
+        }
+
+        const anchorUsed = actions.some(action => {
+          if(action.stateId === state.id && Number.isInteger(action.anchorFrom) && action.anchorFrom === idx) return true;
+          const tr = action.transitions && action.transitions[0];
+          if(!tr || tr.to === null || tr.to === undefined) return false;
+          const targetState = states.find(s => s.id === tr.to);
+          if(!targetState || targetState.id !== state.id) return false;
+          return Number.isInteger(action.anchorTo) && action.anchorTo === idx;
+        });
+
+        if(anchorUsed){
+          startAnchorDrag(e, state, idx);
+        } else {
+          createActionFromAnchor(state, idx);
+        }
       });
       g.appendChild(anchorG);
     });
 
     circle.addEventListener('mousedown', (e) => startStateDrag(e, state));
     hit.addEventListener('mousedown', (e) => startStateDrag(e, state));
-
-    const plusG = document.createElementNS(SVGNS, 'g');
-    const px = NODE_R * 0.75, py = -NODE_R * 0.75;
-    plusG.setAttribute('transform', `translate(${px},${py})`);
-    plusG.style.cursor = 'pointer';
-
-    const plusCircle = document.createElementNS(SVGNS, 'circle');
-    plusCircle.setAttribute('r', 10);
-    plusCircle.setAttribute('fill', '#27ae60');
-    plusCircle.setAttribute('stroke', '#1e8449');
-    plusG.appendChild(plusCircle);
-
-    const plusText = document.createElementNS(SVGNS, 'text');
-    plusText.setAttribute('text-anchor', 'middle');
-    plusText.setAttribute('y', '4');
-    plusText.setAttribute('font-size', '14');
-    plusText.setAttribute('font-weight', 'bold');
-    plusText.setAttribute('fill', '#fff');
-    plusText.setAttribute('pointer-events', 'none');
-    plusText.textContent = '+';
-    plusG.appendChild(plusText);
-
-    plusG.addEventListener('mousedown', (e) => {
-      e.stopPropagation();
-      createActionForState(state);
-    });
-    plusG.setAttribute('title', 'Nova ação (determinística)');
-    g.appendChild(plusG);
 
     svg.appendChild(g);
   });
