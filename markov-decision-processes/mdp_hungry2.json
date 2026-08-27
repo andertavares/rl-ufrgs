@@ -3,8 +3,8 @@
     {
       "id": 1,
       "name": "hungry",
-      "x": 554,
-      "y": 228.640625,
+      "x": 631,
+      "y": 143.640625,
       "reward": -1,
       "terminal": false,
       "color": "#fcd34d"
@@ -12,8 +12,8 @@
     {
       "id": 2,
       "name": "full",
-      "x": 760,
-      "y": 230.640625,
+      "x": 799,
+      "y": 252.640625,
       "reward": 1,
       "terminal": false,
       "color": "#4ade80"
@@ -21,8 +21,8 @@
     {
       "id": 3,
       "name": "starve",
-      "x": 369,
-      "y": 231.640625,
+      "x": 353,
+      "y": 145.640625,
       "reward": -10,
       "terminal": true,
       "color": "#ef4444"
@@ -30,8 +30,8 @@
     {
       "id": 4,
       "name": "near full",
-      "x": 763,
-      "y": 348.78125,
+      "x": 681,
+      "y": 274.78125,
       "reward": 0,
       "terminal": false,
       "color": "#60a5fa"
@@ -56,10 +56,10 @@
     {
       "id": 2,
       "stateId": 1,
-      "name": "a2",
+      "name": "don't eat",
       "node": {
-        "x": 461.5,
-        "y": 230.140625
+        "x": 474.5,
+        "y": 143.140625
       },
       "transitions": [
         {
@@ -92,8 +92,8 @@
       "stateId": 4,
       "name": "don't eat",
       "node": {
-        "x": 553.5,
-        "y": 348.7109375
+        "x": 522.5,
+        "y": 275.7109375
       },
       "transitions": [
         {
@@ -111,8 +111,8 @@
       "stateId": 2,
       "name": "rest",
       "node": {
-        "x": 657,
-        "y": 229.640625
+        "x": 800,
+        "y": 134.640625
       },
       "transitions": [
         {

@@ -442,6 +442,44 @@ function offsetForIndex(n){
   const mag = Math.ceil(n/2) * 26;
   return sign * mag;
 }
+function endpointKey(point){
+  return `${Math.round(point.x)}:${Math.round(point.y)}`;
+}
+function computeSharedEndpointCounts(){
+  const counts = { start: {}, end: {} };
+
+  actions.forEach(action => {
+    const from = states.find(s => s.id === action.stateId);
+    if(!from) return;
+
+    if(action.transitions.length <= 1){
+      const tr = action.transitions[0];
+      if(!tr || tr.to === null) return;
+      const to = states.find(s => s.id === tr.to);
+      if(!to || to.id === from.id) return;
+
+      const startKey = endpointKey(from);
+      const endKey = endpointKey(to);
+      counts.start[startKey] = (counts.start[startKey] || 0) + 1;
+      counts.end[endKey] = (counts.end[endKey] || 0) + 1;
+      return;
+    }
+
+    const node = action.node || { x: from.x + 90, y: from.y - 60 };
+    const nodeKey = endpointKey(node);
+    counts.start[nodeKey] = (counts.start[nodeKey] || 0) + 1;
+
+    action.transitions.forEach(tr => {
+      if(tr.to === null) return;
+      const to = states.find(s => s.id === tr.to);
+      if(!to) return;
+      const endKey = endpointKey(to);
+      counts.end[endKey] = (counts.end[endKey] || 0) + 1;
+    });
+  });
+
+  return counts;
+}
 function svgPointFromEvent(ev, rect){
   return { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
 }
@@ -859,6 +897,7 @@ function renderNodesInto(svg){
 function renderEdgesInto(svg){
   const pairIndex = {};
   const selfLoopIndex = {};
+  const sharedCounts = computeSharedEndpointCounts();
 
   actions.forEach(action => {
     const from = states.find(s => s.id === action.stateId);
@@ -866,15 +905,15 @@ function renderEdgesInto(svg){
     if(!action.node) action.node = { x: from.x + 90, y: from.y - 60 };
 
     if(action.transitions.length <= 1){
-      renderSingleTransitionAction(svg, from, action, pairIndex, selfLoopIndex);
+      renderSingleTransitionAction(svg, from, action, pairIndex, selfLoopIndex, sharedCounts);
     } else {
-      renderMultiTransitionAction(svg, from, action);
+      renderMultiTransitionAction(svg, from, action, sharedCounts);
     }
   });
 }
 
 // ---- 0 ou 1 transição: seta direta, sem nó intermediário ----
-function renderSingleTransitionAction(svg, from, action, pairIndex, selfLoopIndex){
+function renderSingleTransitionAction(svg, from, action, pairIndex, selfLoopIndex, sharedCounts){
   const tr = action.transitions[0];
 
   if(!tr || tr.to === null){
@@ -896,17 +935,20 @@ function renderSingleTransitionAction(svg, from, action, pairIndex, selfLoopInde
     const key = from.id < to.id ? from.id + '_' + to.id : to.id + '_' + from.id;
     const idx = pairIndex[key] || 0;
     pairIndex[key] = idx + 1;
-    drawDirectEdge(svg, from, to, action, idx);
+    drawDirectEdge(svg, from, to, action, idx, sharedCounts);
   }
 }
 
-function drawDirectEdge(svg, from, to, action, idx){
+function drawDirectEdge(svg, from, to, action, idx, sharedCounts){
   const color = colorForAction(action.id);
   const dx = to.x - from.x, dy = to.y - from.y;
   const dist = Math.hypot(dx, dy) || 1;
   const ux = dx / dist, uy = dy / dist;
   const nx = -uy, ny = ux;
-  const offset = offsetForIndex(idx);
+  const sharedStartCount = sharedCounts.start[endpointKey(from)] || 1;
+  const sharedEndCount = sharedCounts.end[endpointKey(to)] || 1;
+  const useCurve = sharedStartCount > 1 || sharedEndCount > 1;
+  const offset = useCurve ? 30 + Math.abs(idx * 18) : offsetForIndex(idx);
   const mx = (from.x + to.x) / 2 + nx * offset;
   const my = (from.y + to.y) / 2 + ny * offset;
 
@@ -1017,7 +1059,7 @@ function renderPendingHandles(svg){
 }
 
 // ---- 2+ transições: nó ◇ com ramificações (existentes + pendentes) ----
-function renderMultiTransitionAction(svg, from, action){
+function renderMultiTransitionAction(svg, from, action, sharedCounts){
   const node = action.node;
   const color = colorForAction(action.id);
   const isSelected = selection.type === 'action' && selection.id === action.id;
@@ -1049,7 +1091,7 @@ function renderMultiTransitionAction(svg, from, action){
         const idx = targetIndex[tr.to] || 0;
         targetIndex[tr.to] = idx + 1;
 
-        drawNodeToTargetEdge(svg, node, to, action, tr, idx);
+        drawNodeToTargetEdge(svg, node, to, action, tr, idx, sharedCounts);
         return;
       }
     }
@@ -1080,13 +1122,16 @@ function renderMultiTransitionAction(svg, from, action){
   svg.appendChild(g);
 }
 
-function drawNodeToTargetEdge(svg, node, target, action, tr, idx){
+function drawNodeToTargetEdge(svg, node, target, action, tr, idx, sharedCounts){
   const color = colorForAction(action.id);
   const dx = target.x - node.x, dy = target.y - node.y;
   const dist = Math.hypot(dx, dy) || 1;
   const ux = dx / dist, uy = dy / dist;
   const nx = -uy, ny = ux;
-  const offset = offsetForIndex(idx);
+  const sharedStartCount = sharedCounts.start[endpointKey(node)] || 1;
+  const sharedEndCount = sharedCounts.end[endpointKey(target)] || 1;
+  const useCurve = sharedStartCount > 1 || sharedEndCount > 1;
+  const offset = useCurve ? 28 + Math.abs(idx * 18) : offsetForIndex(idx);
 
   const startOffset = ACTION_SQ * 1.8;
   const nsx = node.x + ux * startOffset + nx * offset * 0.15;
