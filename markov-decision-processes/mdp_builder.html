@@ -319,6 +319,7 @@
   <button id="btnExport">⬇ Exportar JSON</button>
   <button id="btnImport">⬆ Importar JSON</button>
   <input type="file" id="fileImport" accept="application/json" style="display:none">
+  <button id="btnToggleAnchors">👁 Ocultar âncoras</button>
   <button id="btnClear" class="btn-danger">🗑 Limpar Tudo</button>
   <div class="info">
     <b>Clique em espaço vazio</b> → cria estado &nbsp;|&nbsp;
@@ -375,6 +376,7 @@ let nextActionId = 1;
 
 let selection = { type: null, id: null }; // 'state' | 'action'
 let formOpen = false;
+let showAnchors = true;
 
 let undoStack = [];
 
@@ -1159,72 +1161,75 @@ function renderNodesInto(svg){
         g.appendChild(valueText);
       }
     }
+    if(!showAnchors && !isSelected){
+      // mantém as âncoras ocultas na visualização, mas preserva a interação ativa
+    } else {
+      state.anchors.forEach((anchor, idx) => {
+        const anchorG = document.createElementNS(SVGNS, 'g');
+        anchorG.style.cursor = 'pointer';
+        anchorG.setAttribute('data-state-hit', state.id);
 
-    state.anchors.forEach((anchor, idx) => {
-      const anchorG = document.createElementNS(SVGNS, 'g');
-      anchorG.style.cursor = 'pointer';
-      anchorG.setAttribute('data-state-hit', state.id);
+        const anchorDot = document.createElementNS(SVGNS, 'circle');
+        anchorDot.setAttribute('cx', anchor.x - state.x);
+        anchorDot.setAttribute('cy', anchor.y - state.y);
+        anchorDot.setAttribute('r', 4);
+        anchorDot.setAttribute('fill', '#ffffff');
+        anchorDot.setAttribute('stroke', '#2563eb');
+        anchorDot.setAttribute('stroke-width', '2');
+        anchorDot.setAttribute('filter', 'drop-shadow(0 0 2px rgba(37,99,235,.6))');
+        anchorDot.setAttribute('data-anchor-hit', 'true');
+        anchorDot.setAttribute('data-state-hit', state.id);
+        anchorDot.setAttribute('pointer-events', 'all');
+        anchorG.setAttribute('pointer-events', 'all');
+        anchorG.appendChild(anchorDot);
 
-      const anchorDot = document.createElementNS(SVGNS, 'circle');
-      anchorDot.setAttribute('cx', anchor.x - state.x);
-      anchorDot.setAttribute('cy', anchor.y - state.y);
-      anchorDot.setAttribute('r', 4);
-      anchorDot.setAttribute('fill', '#ffffff');
-      anchorDot.setAttribute('stroke', '#2563eb');
-      anchorDot.setAttribute('stroke-width', '2');
-      anchorDot.setAttribute('filter', 'drop-shadow(0 0 2px rgba(37,99,235,.6))');
-      anchorDot.setAttribute('data-anchor-hit', 'true');
-      anchorDot.setAttribute('data-state-hit', state.id);
-      anchorDot.setAttribute('pointer-events', 'all');
-      anchorG.setAttribute('pointer-events', 'all');
-      anchorG.appendChild(anchorDot);
-
-      if(isSelected){
-        const ring = document.createElementNS(SVGNS, 'circle');
-        ring.setAttribute('cx', anchor.x - state.x);
-        ring.setAttribute('cy', anchor.y - state.y);
-        ring.setAttribute('r', 9);
-        ring.setAttribute('fill', 'none');
-        ring.setAttribute('stroke', '#60a5fa');
-        ring.setAttribute('stroke-width', '1.5');
-        ring.setAttribute('stroke-dasharray', '3 2');
-        ring.setAttribute('pointer-events', 'none');
-        anchorG.appendChild(ring);
-      }
-
-      anchorG.addEventListener('mousedown', (e) => {
-        e.stopPropagation();
-
-        const selectedAction = selection.type === 'action' ? actions.find(a => a.id === selection.id) : null;
-        const isSelectedActionSource = selectedAction && selectedAction.stateId === state.id && Number.isInteger(selectedAction.anchorFrom) && selectedAction.anchorFrom === idx;
-        const isSelectedActionTarget = selectedAction && selectedAction.transitions.some(tr => {
-          if(!tr || tr.to === null || tr.to === undefined) return false;
-          const targetState = states.find(s => s.id === tr.to);
-          return targetState && targetState.id === state.id && Number.isInteger(selectedAction.anchorTo) && selectedAction.anchorTo === idx;
-        });
-
-        if(isSelectedActionSource || isSelectedActionTarget){
-          startAnchorDrag(e, state, idx);
-          return;
+        if(isSelected){
+          const ring = document.createElementNS(SVGNS, 'circle');
+          ring.setAttribute('cx', anchor.x - state.x);
+          ring.setAttribute('cy', anchor.y - state.y);
+          ring.setAttribute('r', 9);
+          ring.setAttribute('fill', 'none');
+          ring.setAttribute('stroke', '#60a5fa');
+          ring.setAttribute('stroke-width', '1.5');
+          ring.setAttribute('stroke-dasharray', '3 2');
+          ring.setAttribute('pointer-events', 'none');
+          anchorG.appendChild(ring);
         }
 
-        const anchorUsed = actions.some(action => {
-          if(action.stateId === state.id && Number.isInteger(action.anchorFrom) && action.anchorFrom === idx) return true;
-          const tr = action.transitions && action.transitions[0];
-          if(!tr || tr.to === null || tr.to === undefined) return false;
-          const targetState = states.find(s => s.id === tr.to);
-          if(!targetState || targetState.id !== state.id) return false;
-          return Number.isInteger(action.anchorTo) && action.anchorTo === idx;
-        });
+        anchorG.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
 
-        if(anchorUsed){
-          startAnchorDrag(e, state, idx);
-        } else {
-          createActionFromAnchor(state, idx);
-        }
+          const selectedAction = selection.type === 'action' ? actions.find(a => a.id === selection.id) : null;
+          const isSelectedActionSource = selectedAction && selectedAction.stateId === state.id && Number.isInteger(selectedAction.anchorFrom) && selectedAction.anchorFrom === idx;
+          const isSelectedActionTarget = selectedAction && selectedAction.transitions.some(tr => {
+            if(!tr || tr.to === null || tr.to === undefined) return false;
+            const targetState = states.find(s => s.id === tr.to);
+            return targetState && targetState.id === state.id && Number.isInteger(selectedAction.anchorTo) && selectedAction.anchorTo === idx;
+          });
+
+          if(isSelectedActionSource || isSelectedActionTarget){
+            startAnchorDrag(e, state, idx);
+            return;
+          }
+
+          const anchorUsed = actions.some(action => {
+            if(action.stateId === state.id && Number.isInteger(action.anchorFrom) && action.anchorFrom === idx) return true;
+            const tr = action.transitions && action.transitions[0];
+            if(!tr || tr.to === null || tr.to === undefined) return false;
+            const targetState = states.find(s => s.id === tr.to);
+            if(!targetState || targetState.id !== state.id) return false;
+            return Number.isInteger(action.anchorTo) && action.anchorTo === idx;
+          });
+
+          if(anchorUsed){
+            startAnchorDrag(e, state, idx);
+          } else {
+            createActionFromAnchor(state, idx);
+          }
+        });
+        g.appendChild(anchorG);
       });
-      g.appendChild(anchorG);
-    });
+    }
 
     circle.addEventListener('mousedown', (e) => startStateDrag(e, state));
     hit.addEventListener('mousedown', (e) => startStateDrag(e, state));
@@ -1431,6 +1436,8 @@ function drawPendingHandle(svg, from, action){
 
 // Desenha todas as alças coletadas, por CIMA de estados/arestas.
 function renderPendingHandles(svg){
+  if(!showAnchors) return;
+
   pendingHandles.forEach(({ point, color, endpoint, onMouseDown }) => {
     const g = document.createElementNS(SVGNS, 'g');
     g.style.cursor = 'grab';
@@ -2210,6 +2217,13 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ---------- TOOLBAR ----------
+document.getElementById('btnToggleAnchors').onclick = () => {
+  showAnchors = !showAnchors;
+  const btn = document.getElementById('btnToggleAnchors');
+  btn.textContent = showAnchors ? '👁 Ocultar âncoras' : '👁 Mostrar âncoras';
+  render();
+};
+
 document.getElementById('btnClear').onclick = () => {
   if(confirm('Isso irá apagar todo o grafo. Continuar? (Ctrl+Z pode desfazer)')){
     pushHistory();
