@@ -1689,123 +1689,6 @@ function renderSidebar(){
       sidebar.appendChild(buildStatePanel(state));
       sidebar.appendChild(buildActionsListPanel(state));
     }
-
-    function buildValueIterationPanel(){
-      const panel = document.createElement('div');
-      panel.className = 'panel';
-      panel.innerHTML = '<h3>Iteração de Política / Valor</h3>';
-
-      const modeLabel = document.createElement('label');
-      modeLabel.textContent = 'Modo:';
-      panel.appendChild(modeLabel);
-
-      const policyToggleLabel = document.createElement('label');
-      policyToggleLabel.className = 'checkbox-label';
-      const policyToggle = document.createElement('input');
-      policyToggle.type = 'checkbox';
-      policyToggle.checked = mdpMode === 'policy';
-      policyToggle.onchange = () => {
-        mdpMode = policyToggle.checked ? 'policy' : 'value';
-        renderSidebar();
-      };
-      policyToggleLabel.appendChild(policyToggle);
-      policyToggleLabel.appendChild(document.createTextNode(' Iteração de política'));
-      panel.appendChild(policyToggleLabel);
-
-      const valueToggleLabel = document.createElement('label');
-      valueToggleLabel.className = 'checkbox-label';
-      const valueToggle = document.createElement('input');
-      valueToggle.type = 'checkbox';
-      valueToggle.checked = mdpMode === 'value';
-      valueToggle.onchange = () => {
-        mdpMode = valueToggle.checked ? 'value' : 'policy';
-        renderSidebar();
-      };
-      valueToggleLabel.appendChild(valueToggle);
-      valueToggleLabel.appendChild(document.createTextNode(' Iteração de valor (atalho)'));
-      panel.appendChild(valueToggleLabel);
-
-      const showValuesLabel = document.createElement('label');
-      showValuesLabel.className = 'checkbox-label';
-      const showValuesToggle = document.createElement('input');
-      showValuesToggle.type = 'checkbox';
-      showValuesToggle.checked = mdpShowValues;
-      showValuesToggle.onchange = (e) => {
-        mdpShowValues = e.target.checked;
-        renderSVG();
-      };
-      showValuesLabel.appendChild(showValuesToggle);
-      showValuesLabel.appendChild(document.createTextNode(' Mostrar V(s) ao lado dos nós'));
-      panel.appendChild(showValuesLabel);
-
-      const gammaLabel = document.createElement('label');
-      gammaLabel.textContent = 'Gamma (desconto):';
-      const gammaInput = document.createElement('input');
-      gammaInput.type = 'number';
-      gammaInput.min = '0';
-      gammaInput.max = '1';
-      gammaInput.step = '0.01';
-      gammaInput.value = String(mdpGamma);
-      gammaInput.onchange = () => {
-        const parsed = Number(gammaInput.value);
-        if(Number.isFinite(parsed)){
-          mdpGamma = Math.min(1, Math.max(0, parsed));
-        }
-        gammaInput.value = String(mdpGamma);
-      };
-      panel.appendChild(gammaLabel);
-      panel.appendChild(gammaInput);
-
-      const nLabel = document.createElement('label');
-      nLabel.textContent = 'N iterações de avaliação:';
-      const nInput = document.createElement('input');
-      nInput.type = 'number';
-      nInput.min = '1';
-      nInput.step = '1';
-      nInput.value = String(mdpEvaluationSteps);
-      nInput.onchange = () => {
-        const parsed = Number(nInput.value);
-        mdpEvaluationSteps = Math.max(1, Math.floor(Number.isFinite(parsed) ? parsed : 1));
-        nInput.value = String(mdpEvaluationSteps);
-      };
-      panel.appendChild(nLabel);
-      panel.appendChild(nInput);
-
-      const buttons = document.createElement('div');
-      buttons.className = 'btn-row';
-
-      const evalStepBtn = document.createElement('button');
-      evalStepBtn.textContent = '1 passo avaliação';
-      evalStepBtn.onclick = () => executePolicyEvaluationStep(1);
-      buttons.appendChild(evalStepBtn);
-
-      const evalNBtn = document.createElement('button');
-      evalNBtn.textContent = `${mdpEvaluationSteps} passos avaliação`;
-      evalNBtn.onclick = () => executePolicyEvaluationStep(mdpEvaluationSteps);
-      buttons.appendChild(evalNBtn);
-
-      const improveBtn = document.createElement('button');
-      improveBtn.textContent = '1 passo melhoria';
-      improveBtn.onclick = () => executePolicyImprovementStep();
-      buttons.appendChild(improveBtn);
-
-      if(mdpMode === 'value'){
-        const valueStepBtn = document.createElement('button');
-        valueStepBtn.className = 'btn-primary';
-        valueStepBtn.textContent = '1 passo iteração de valor';
-        valueStepBtn.onclick = () => executeValueIterationStep(1);
-        buttons.appendChild(valueStepBtn);
-      }
-
-      panel.appendChild(buttons);
-
-      const status = document.createElement('p');
-      status.className = 'hint';
-      status.textContent = mdpStatusMessage;
-      panel.appendChild(status);
-
-      return panel;
-    }
   } else if(selection.type !== 'action'){
     const hint = document.createElement('div');
     hint.className = 'panel hint';
@@ -1816,6 +1699,125 @@ function renderSidebar(){
   if(formOpen && selection.type === 'action'){
     sidebar.appendChild(buildActionFormPanel());
   }
+}
+
+function buildValueIterationPanel(){
+  const panel = document.createElement('div');
+  panel.className = 'panel';
+  panel.innerHTML = '<h3>Iteração de Política / Valor</h3>';
+
+  const modeLabel = document.createElement('label');
+  modeLabel.textContent = 'Modo:';
+  panel.appendChild(modeLabel);
+
+  const policyToggleLabel = document.createElement('label');
+  policyToggleLabel.className = 'checkbox-label';
+  const policyToggle = document.createElement('input');
+  policyToggle.type = 'checkbox';
+  policyToggle.checked = mdpMode === 'policy';
+  policyToggle.onchange = () => {
+    mdpMode = policyToggle.checked ? 'policy' : 'value';
+    renderSidebar();
+  };
+  policyToggleLabel.appendChild(policyToggle);
+  policyToggleLabel.appendChild(document.createTextNode(' Iteração de política'));
+  panel.appendChild(policyToggleLabel);
+
+  const valueToggleLabel = document.createElement('label');
+  valueToggleLabel.className = 'checkbox-label';
+  const valueToggle = document.createElement('input');
+  valueToggle.type = 'checkbox';
+  valueToggle.checked = mdpMode === 'value';
+  valueToggle.onchange = () => {
+    mdpMode = valueToggle.checked ? 'value' : 'policy';
+    renderSidebar();
+  };
+  valueToggleLabel.appendChild(valueToggle);
+  valueToggleLabel.appendChild(document.createTextNode(' Iteração de valor (atalho)'));
+  panel.appendChild(valueToggleLabel);
+
+  const showValuesLabel = document.createElement('label');
+  showValuesLabel.className = 'checkbox-label';
+  const showValuesToggle = document.createElement('input');
+  showValuesToggle.type = 'checkbox';
+  showValuesToggle.checked = mdpShowValues;
+  showValuesToggle.onchange = (e) => {
+    mdpShowValues = e.target.checked;
+    renderSVG();
+  };
+  showValuesLabel.appendChild(showValuesToggle);
+  showValuesLabel.appendChild(document.createTextNode(' Mostrar V(s) ao lado dos nós'));
+  panel.appendChild(showValuesLabel);
+
+  const gammaLabel = document.createElement('label');
+  gammaLabel.textContent = 'Gamma (desconto):';
+  const gammaInput = document.createElement('input');
+  gammaInput.type = 'number';
+  gammaInput.min = '0';
+  gammaInput.max = '1';
+  gammaInput.step = '0.01';
+  gammaInput.value = String(mdpGamma);
+  gammaInput.onchange = () => {
+    const parsed = Number(gammaInput.value);
+    if(Number.isFinite(parsed)){
+      mdpGamma = Math.min(1, Math.max(0, parsed));
+    }
+    gammaInput.value = String(mdpGamma);
+  };
+  panel.appendChild(gammaLabel);
+  panel.appendChild(gammaInput);
+
+  const nLabel = document.createElement('label');
+  nLabel.textContent = 'N iterações de avaliação:';
+  const nInput = document.createElement('input');
+  nInput.type = 'number';
+  nInput.min = '1';
+  nInput.step = '1';
+  nInput.value = String(mdpEvaluationSteps);
+  panel.appendChild(nLabel);
+  panel.appendChild(nInput);
+
+  const buttons = document.createElement('div');
+  buttons.className = 'btn-row';
+
+  const evalStepBtn = document.createElement('button');
+  evalStepBtn.textContent = '1 passo avaliação';
+  evalStepBtn.onclick = () => executePolicyEvaluationStep(1);
+  buttons.appendChild(evalStepBtn);
+
+  const evalNBtn = document.createElement('button');
+  evalNBtn.textContent = `${mdpEvaluationSteps} passos avaliação`;
+  evalNBtn.onclick = () => executePolicyEvaluationStep(mdpEvaluationSteps);
+  buttons.appendChild(evalNBtn);
+
+  nInput.onchange = () => {
+    const parsed = Number(nInput.value);
+    mdpEvaluationSteps = Math.max(1, Math.floor(Number.isFinite(parsed) ? parsed : 1));
+    nInput.value = String(mdpEvaluationSteps);
+    evalNBtn.textContent = `${mdpEvaluationSteps} passos avaliação`;
+  };
+
+  const improveBtn = document.createElement('button');
+  improveBtn.textContent = '1 passo melhoria';
+  improveBtn.onclick = () => executePolicyImprovementStep();
+  buttons.appendChild(improveBtn);
+
+  if(mdpMode === 'value'){
+    const valueStepBtn = document.createElement('button');
+    valueStepBtn.className = 'btn-primary';
+    valueStepBtn.textContent = '1 passo iteração de valor';
+    valueStepBtn.onclick = () => executeValueIterationStep(1);
+    buttons.appendChild(valueStepBtn);
+  }
+
+  panel.appendChild(buttons);
+
+  const status = document.createElement('p');
+  status.className = 'hint';
+  status.textContent = mdpStatusMessage;
+  panel.appendChild(status);
+
+  return panel;
 }
 
 function pushHistoryOnce(flagObj){
