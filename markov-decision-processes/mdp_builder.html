@@ -1365,6 +1365,8 @@ function drawPendingHandle(svg, from, action){
 
 // Desenha todas as alças coletadas, por CIMA de estados/arestas.
 function renderPendingHandles(svg){
+  if(!showAnchors) return;
+
   pendingHandles.forEach(({ point, color, endpoint, onMouseDown }) => {
     const g = document.createElementNS(SVGNS, 'g');
     g.style.cursor = 'grab';
