@@ -337,6 +337,7 @@
   <div id="sidebar"></div>
 </div>
 
+<script src="./value_iter.js"></script>
 <script>
 const SVGNS = 'http://www.w3.org/2000/svg';
 const NODE_R = 32;
@@ -381,7 +382,60 @@ let undoStack = [];
 // (garante prioridade de clique nas pontas/handles).
 let pendingHandles = [];
 
+let mdpMode = 'policy';
+let mdpGamma = 0.9;
+let mdpEvaluationSteps = 5;
+let mdpShowValues = true;
+let mdpValues = {};
+let mdpPolicy = {};
+let mdpStatusMessage = 'Execute avaliação e melhoria para calcular V(s).';
+
 const svgEl = document.getElementById('canvas');
+
+function solverAPI(){
+  return window.MDPValueIteration;
+}
+
+function buildCurrentModel(){
+  return solverAPI().buildModel(states, actions);
+}
+
+function syncSolverState(){
+  const model = buildCurrentModel();
+  mdpValues = solverAPI().initializeValues(model, mdpValues);
+  mdpPolicy = solverAPI().reconcilePolicy(model, mdpPolicy);
+  return model;
+}
+
+function executePolicyEvaluationStep(iterations = 1){
+  const model = syncSolverState();
+  const result = solverAPI().policyEvaluation(model, mdpValues, mdpPolicy, mdpGamma, iterations);
+  mdpValues = result.values;
+  mdpPolicy = result.policy;
+  mdpStatusMessage = `Avaliação executada (${Math.max(1, Math.floor(Number(iterations) || 1))} iteração(ões)).`;
+  render();
+}
+
+function executePolicyImprovementStep(){
+  const model = syncSolverState();
+  const result = solverAPI().policyImprovementStep(model, mdpValues, mdpPolicy, mdpGamma);
+  mdpPolicy = result.policy;
+  mdpStatusMessage = result.stable
+    ? 'Melhoria executada: política estável.'
+    : 'Melhoria executada: política atualizada.';
+  render();
+}
+
+function executeValueIterationStep(iterations = 1){
+  const model = syncSolverState();
+  const result = solverAPI().valueIterationStep(model, mdpValues, mdpPolicy, mdpGamma, iterations);
+  mdpValues = result.values;
+  mdpPolicy = result.policy;
+  mdpStatusMessage = result.stable
+    ? 'Iteração de valor executada: política estável.'
+    : 'Iteração de valor executada: política melhorada.';
+  render();
+}
 
 // ---------- HISTÓRICO (UNDO) ----------
 function snapshot(){
@@ -1088,6 +1142,24 @@ function renderNodesInto(svg){
     rewardText.textContent = `R=${state.reward}`;
     g.appendChild(rewardText);
 
+    if(mdpShowValues){
+      const value = Number(mdpValues[state.id]);
+      if(Number.isFinite(value)){
+        const valueText = document.createElementNS(SVGNS, 'text');
+        valueText.setAttribute('x', String(NODE_R + 12));
+        valueText.setAttribute('y', String(-NODE_R + 6));
+        valueText.setAttribute('font-size', '12');
+        valueText.setAttribute('font-weight', '700');
+        valueText.setAttribute('fill', '#5b21b6');
+        valueText.setAttribute('stroke', '#f4f4f5');
+        valueText.setAttribute('stroke-width', '4');
+        valueText.setAttribute('paint-order', 'stroke fill');
+        valueText.setAttribute('pointer-events', 'none');
+        valueText.textContent = `V=${value.toFixed(3)}`;
+        g.appendChild(valueText);
+      }
+    }
+
     state.anchors.forEach((anchor, idx) => {
       const anchorG = document.createElementNS(SVGNS, 'g');
       anchorG.style.cursor = 'pointer';
@@ -1609,12 +1681,130 @@ function renderSidebar(){
   }
   listSection.appendChild(listDiv);
   sidebar.appendChild(listSection);
+  sidebar.appendChild(buildValueIterationPanel());
 
   if(selection.type === 'state'){
     const state = states.find(s => s.id === selection.id);
     if(state){
       sidebar.appendChild(buildStatePanel(state));
       sidebar.appendChild(buildActionsListPanel(state));
+    }
+
+    function buildValueIterationPanel(){
+      const panel = document.createElement('div');
+      panel.className = 'panel';
+      panel.innerHTML = '<h3>Iteração de Política / Valor</h3>';
+
+      const modeLabel = document.createElement('label');
+      modeLabel.textContent = 'Modo:';
+      panel.appendChild(modeLabel);
+
+      const policyToggleLabel = document.createElement('label');
+      policyToggleLabel.className = 'checkbox-label';
+      const policyToggle = document.createElement('input');
+      policyToggle.type = 'checkbox';
+      policyToggle.checked = mdpMode === 'policy';
+      policyToggle.onchange = () => {
+        mdpMode = policyToggle.checked ? 'policy' : 'value';
+        renderSidebar();
+      };
+      policyToggleLabel.appendChild(policyToggle);
+      policyToggleLabel.appendChild(document.createTextNode(' Iteração de política'));
+      panel.appendChild(policyToggleLabel);
+
+      const valueToggleLabel = document.createElement('label');
+      valueToggleLabel.className = 'checkbox-label';
+      const valueToggle = document.createElement('input');
+      valueToggle.type = 'checkbox';
+      valueToggle.checked = mdpMode === 'value';
+      valueToggle.onchange = () => {
+        mdpMode = valueToggle.checked ? 'value' : 'policy';
+        renderSidebar();
+      };
+      valueToggleLabel.appendChild(valueToggle);
+      valueToggleLabel.appendChild(document.createTextNode(' Iteração de valor (atalho)'));
+      panel.appendChild(valueToggleLabel);
+
+      const showValuesLabel = document.createElement('label');
+      showValuesLabel.className = 'checkbox-label';
+      const showValuesToggle = document.createElement('input');
+      showValuesToggle.type = 'checkbox';
+      showValuesToggle.checked = mdpShowValues;
+      showValuesToggle.onchange = (e) => {
+        mdpShowValues = e.target.checked;
+        renderSVG();
+      };
+      showValuesLabel.appendChild(showValuesToggle);
+      showValuesLabel.appendChild(document.createTextNode(' Mostrar V(s) ao lado dos nós'));
+      panel.appendChild(showValuesLabel);
+
+      const gammaLabel = document.createElement('label');
+      gammaLabel.textContent = 'Gamma (desconto):';
+      const gammaInput = document.createElement('input');
+      gammaInput.type = 'number';
+      gammaInput.min = '0';
+      gammaInput.max = '1';
+      gammaInput.step = '0.01';
+      gammaInput.value = String(mdpGamma);
+      gammaInput.onchange = () => {
+        const parsed = Number(gammaInput.value);
+        if(Number.isFinite(parsed)){
+          mdpGamma = Math.min(1, Math.max(0, parsed));
+        }
+        gammaInput.value = String(mdpGamma);
+      };
+      panel.appendChild(gammaLabel);
+      panel.appendChild(gammaInput);
+
+      const nLabel = document.createElement('label');
+      nLabel.textContent = 'N iterações de avaliação:';
+      const nInput = document.createElement('input');
+      nInput.type = 'number';
+      nInput.min = '1';
+      nInput.step = '1';
+      nInput.value = String(mdpEvaluationSteps);
+      nInput.onchange = () => {
+        const parsed = Number(nInput.value);
+        mdpEvaluationSteps = Math.max(1, Math.floor(Number.isFinite(parsed) ? parsed : 1));
+        nInput.value = String(mdpEvaluationSteps);
+      };
+      panel.appendChild(nLabel);
+      panel.appendChild(nInput);
+
+      const buttons = document.createElement('div');
+      buttons.className = 'btn-row';
+
+      const evalStepBtn = document.createElement('button');
+      evalStepBtn.textContent = '1 passo avaliação';
+      evalStepBtn.onclick = () => executePolicyEvaluationStep(1);
+      buttons.appendChild(evalStepBtn);
+
+      const evalNBtn = document.createElement('button');
+      evalNBtn.textContent = `${mdpEvaluationSteps} passos avaliação`;
+      evalNBtn.onclick = () => executePolicyEvaluationStep(mdpEvaluationSteps);
+      buttons.appendChild(evalNBtn);
+
+      const improveBtn = document.createElement('button');
+      improveBtn.textContent = '1 passo melhoria';
+      improveBtn.onclick = () => executePolicyImprovementStep();
+      buttons.appendChild(improveBtn);
+
+      if(mdpMode === 'value'){
+        const valueStepBtn = document.createElement('button');
+        valueStepBtn.className = 'btn-primary';
+        valueStepBtn.textContent = '1 passo iteração de valor';
+        valueStepBtn.onclick = () => executeValueIterationStep(1);
+        buttons.appendChild(valueStepBtn);
+      }
+
+      panel.appendChild(buttons);
+
+      const status = document.createElement('p');
+      status.className = 'hint';
+      status.textContent = mdpStatusMessage;
+      panel.appendChild(status);
+
+      return panel;
     }
   } else if(selection.type !== 'action'){
     const hint = document.createElement('div');
