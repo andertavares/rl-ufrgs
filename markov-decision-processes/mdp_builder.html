@@ -384,13 +384,13 @@ let undoStack = [];
 // (garante prioridade de clique nas pontas/handles).
 let pendingHandles = [];
 
-let mdpMode = 'policy';
+let mdpMode = 'value';
 let mdpGamma = 0.9;
 let mdpEvaluationSteps = 5;
 let mdpShowValues = true;
 let mdpValues = {};
 let mdpPolicy = {};
-let mdpStatusMessage = 'Execute avaliação e melhoria para calcular V(s).';
+let mdpStatusMessage = 'Execute iteração de valor para calcular V(s).';
 
 const svgEl = document.getElementById('canvas');
 
@@ -409,33 +409,14 @@ function syncSolverState(){
   return model;
 }
 
-function executePolicyEvaluationStep(iterations = 1){
-  const model = syncSolverState();
-  const result = solverAPI().policyEvaluation(model, mdpValues, mdpPolicy, mdpGamma, iterations);
-  mdpValues = result.values;
-  mdpPolicy = result.policy;
-  mdpStatusMessage = `Avaliação executada (${Math.max(1, Math.floor(Number(iterations) || 1))} iteração(ões)).`;
-  render();
-}
-
-function executePolicyImprovementStep(){
-  const model = syncSolverState();
-  const result = solverAPI().policyImprovementStep(model, mdpValues, mdpPolicy, mdpGamma);
-  mdpPolicy = result.policy;
-  mdpStatusMessage = result.stable
-    ? 'Melhoria executada: política estável.'
-    : 'Melhoria executada: política atualizada.';
-  render();
-}
-
 function executeValueIterationStep(iterations = 1){
   const model = syncSolverState();
-  const result = solverAPI().valueIterationStep(model, mdpValues, mdpPolicy, mdpGamma, iterations);
+  const result = solverAPI().valueIterationStep(model, mdpValues, mdpGamma, iterations);
   mdpValues = result.values;
-  mdpPolicy = result.policy;
+  mdpPolicy = result.policy || {};
   mdpStatusMessage = result.stable
-    ? 'Iteração de valor executada: política estável.'
-    : 'Iteração de valor executada: política melhorada.';
+    ? 'Iteração de valor executada: solução convergiu.'
+    : `Iteração de valor executada (${Math.max(1, Math.floor(Number(iterations) || 1))} passo(s)).`;
   render();
 }
 
@@ -1711,37 +1692,7 @@ function renderSidebar(){
 function buildValueIterationPanel(){
   const panel = document.createElement('div');
   panel.className = 'panel';
-  panel.innerHTML = '<h3>Iteração de Política / Valor</h3>';
-
-  const modeLabel = document.createElement('label');
-  modeLabel.textContent = 'Modo:';
-  panel.appendChild(modeLabel);
-
-  const policyToggleLabel = document.createElement('label');
-  policyToggleLabel.className = 'checkbox-label';
-  const policyToggle = document.createElement('input');
-  policyToggle.type = 'checkbox';
-  policyToggle.checked = mdpMode === 'policy';
-  policyToggle.onchange = () => {
-    mdpMode = policyToggle.checked ? 'policy' : 'value';
-    renderSidebar();
-  };
-  policyToggleLabel.appendChild(policyToggle);
-  policyToggleLabel.appendChild(document.createTextNode(' Iteração de política'));
-  panel.appendChild(policyToggleLabel);
-
-  const valueToggleLabel = document.createElement('label');
-  valueToggleLabel.className = 'checkbox-label';
-  const valueToggle = document.createElement('input');
-  valueToggle.type = 'checkbox';
-  valueToggle.checked = mdpMode === 'value';
-  valueToggle.onchange = () => {
-    mdpMode = valueToggle.checked ? 'value' : 'policy';
-    renderSidebar();
-  };
-  valueToggleLabel.appendChild(valueToggle);
-  valueToggleLabel.appendChild(document.createTextNode(' Iteração de valor (atalho)'));
-  panel.appendChild(valueToggleLabel);
+  panel.innerHTML = '<h3>Iteração de Valor</h3>';
 
   const showValuesLabel = document.createElement('label');
   showValuesLabel.className = 'checkbox-label';
@@ -1775,7 +1726,7 @@ function buildValueIterationPanel(){
   panel.appendChild(gammaInput);
 
   const nLabel = document.createElement('label');
-  nLabel.textContent = 'N iterações de avaliação:';
+  nLabel.textContent = 'N iterações:';
   const nInput = document.createElement('input');
   nInput.type = 'number';
   nInput.min = '1';
@@ -1787,35 +1738,23 @@ function buildValueIterationPanel(){
   const buttons = document.createElement('div');
   buttons.className = 'btn-row';
 
-  const evalStepBtn = document.createElement('button');
-  evalStepBtn.textContent = '1 passo avaliação';
-  evalStepBtn.onclick = () => executePolicyEvaluationStep(1);
-  buttons.appendChild(evalStepBtn);
+  const valueStepBtn = document.createElement('button');
+  valueStepBtn.className = 'btn-primary';
+  valueStepBtn.textContent = '1 passo iteração de valor';
+  valueStepBtn.onclick = () => executeValueIterationStep(1);
+  buttons.appendChild(valueStepBtn);
 
-  const evalNBtn = document.createElement('button');
-  evalNBtn.textContent = `${mdpEvaluationSteps} passos avaliação`;
-  evalNBtn.onclick = () => executePolicyEvaluationStep(mdpEvaluationSteps);
-  buttons.appendChild(evalNBtn);
+  const valueNBtn = document.createElement('button');
+  valueNBtn.textContent = `${mdpEvaluationSteps} passos`;
+  valueNBtn.onclick = () => executeValueIterationStep(mdpEvaluationSteps);
+  buttons.appendChild(valueNBtn);
 
   nInput.onchange = () => {
     const parsed = Number(nInput.value);
     mdpEvaluationSteps = Math.max(1, Math.floor(Number.isFinite(parsed) ? parsed : 1));
     nInput.value = String(mdpEvaluationSteps);
-    evalNBtn.textContent = `${mdpEvaluationSteps} passos avaliação`;
+    valueNBtn.textContent = `${mdpEvaluationSteps} passos`;
   };
-
-  const improveBtn = document.createElement('button');
-  improveBtn.textContent = '1 passo melhoria';
-  improveBtn.onclick = () => executePolicyImprovementStep();
-  buttons.appendChild(improveBtn);
-
-  if(mdpMode === 'value'){
-    const valueStepBtn = document.createElement('button');
-    valueStepBtn.className = 'btn-primary';
-    valueStepBtn.textContent = '1 passo iteração de valor';
-    valueStepBtn.onclick = () => executeValueIterationStep(1);
-    buttons.appendChild(valueStepBtn);
-  }
 
   panel.appendChild(buttons);
 

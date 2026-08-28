@@ -19,16 +19,17 @@
 
     const safe = valid.map((tr) => ({
       to: tr.to,
-      prob: clampProbability(tr.prob)
+      prob: clampProbability(tr.prob),
+      reward: Number.isFinite(Number(tr.reward)) ? Number(tr.reward) : (Number.isFinite(Number(tr.r)) ? Number(tr.r) : undefined)
     }));
 
     const sum = safe.reduce((acc, tr) => acc + tr.prob, 0);
     if(sum <= 0){
       const uniform = 1 / safe.length;
-      return safe.map((tr) => ({ to: tr.to, prob: uniform }));
+      return safe.map((tr) => ({ to: tr.to, prob: uniform, reward: tr.reward }));
     }
 
-    return safe.map((tr) => ({ to: tr.to, prob: tr.prob / sum }));
+    return safe.map((tr) => ({ to: tr.to, prob: tr.prob / sum, reward: tr.reward }));
   }
 
   function buildModel(states, actions){
@@ -73,7 +74,7 @@
         values[state.id] = seeded;
         return;
       }
-      values[state.id] = state.terminal ? state.reward : 0;
+      values[state.id] = 0;
     });
 
     return values;
@@ -103,106 +104,90 @@
     return next;
   }
 
-  function qValue(state, action, values, gamma){
+  function transitionReward(tr, nextState){
+    if(!tr || typeof tr !== 'object') return 0;
+
+    if(Number.isFinite(Number(tr.reward))) return Number(tr.reward);
+    if(Number.isFinite(Number(tr.r))) return Number(tr.r);
+    if(nextState && Number.isFinite(Number(nextState.reward))) return Number(nextState.reward);
+
+    return 0;
+  }
+
+  function qValue(model, state, action, values, gamma){
     if(!action || !Array.isArray(action.transitions) || action.transitions.length === 0){
-      return state.reward;
+      return 0;
     }
 
     let expected = 0;
     action.transitions.forEach((tr) => {
-      expected += tr.prob * toNumber(values[tr.to], 0);
+      if(tr && tr.to !== null && tr.to !== undefined){
+        const nextState = model.stateById.get(tr.to);
+        const reward = transitionReward(tr, nextState);
+        expected += tr.prob * (reward + gamma * toNumber(values[tr.to], 0));
+      }
     });
-    return state.reward + gamma * expected;
+    return expected;
   }
 
-  function policyEvaluationStep(model, values, policy, gamma){
+  function bellmanOptimalityValue(model, values, state, gamma){
     const discount = toNumber(gamma, 0.9);
     const currentValues = initializeValues(model, values);
-    const reconciledPolicy = reconcilePolicy(model, policy);
-    const updated = {};
 
-    model.states.forEach((state) => {
-      if(state.terminal){
-        updated[state.id] = state.reward;
-        return;
-      }
-
-      const actionId = reconciledPolicy[state.id];
-      const action = actionId === null || actionId === undefined ? null : model.actionById.get(actionId);
-      updated[state.id] = qValue(state, action, currentValues, discount);
-    });
-
-    return { values: updated, policy: reconciledPolicy };
-  }
-
-  function policyEvaluation(model, values, policy, gamma, iterations){
-    const totalIterations = Math.max(1, Math.floor(toNumber(iterations, 1)));
-    let currentValues = initializeValues(model, values);
-    const reconciledPolicy = reconcilePolicy(model, policy);
-
-    for(let i = 0; i < totalIterations; i++){
-      currentValues = policyEvaluationStep(model, currentValues, reconciledPolicy, gamma).values;
+    if(state.terminal){
+      return 0;
     }
 
-    return { values: currentValues, policy: reconciledPolicy };
-  }
+    const stateActions = model.actionsByState.get(state.id) || [];
+    if(stateActions.length === 0){
+      return 0;
+    }
 
-  function policyImprovementStep(model, values, policy, gamma){
-    const discount = toNumber(gamma, 0.9);
-    const currentValues = initializeValues(model, values);
-    const currentPolicy = reconcilePolicy(model, policy);
-    const nextPolicy = {};
-    let changed = false;
+    let bestValue = -Infinity;
 
-    model.states.forEach((state) => {
-      if(state.terminal){
-        nextPolicy[state.id] = null;
+    stateActions.forEach((action) => {
+      if(!action || !Array.isArray(action.transitions) || action.transitions.length === 0){
+        bestValue = Math.max(bestValue, 0);
         return;
       }
 
-      const stateActions = model.actionsByState.get(state.id) || [];
-      if(stateActions.length === 0){
-        nextPolicy[state.id] = null;
-        return;
-      }
-
-      let bestAction = stateActions[0];
-      let bestValue = qValue(state, bestAction, currentValues, discount);
-      for(let idx = 1; idx < stateActions.length; idx++){
-        const candidate = stateActions[idx];
-        const candidateValue = qValue(state, candidate, currentValues, discount);
-        if(candidateValue > bestValue + 1e-12){
-          bestValue = candidateValue;
-          bestAction = candidate;
-        }
-      }
-
-      nextPolicy[state.id] = bestAction.id;
-      if(currentPolicy[state.id] !== bestAction.id){
-        changed = true;
+      const actionValue = qValue(model, state, action, currentValues, discount);
+      if(actionValue > bestValue){
+        bestValue = actionValue;
       }
     });
 
-    return { policy: nextPolicy, stable: !changed };
+    return Number.isFinite(bestValue) ? bestValue : 0;
   }
 
-  function valueIterationStep(model, values, policy, gamma, evaluationIterations){
-    const evaluated = policyEvaluation(model, values, policy, gamma, evaluationIterations);
-    const improved = policyImprovementStep(model, evaluated.values, evaluated.policy, gamma);
-    return {
-      values: evaluated.values,
-      policy: improved.policy,
-      stable: improved.stable
-    };
+  function valueIterationStep(model, values, gamma, iterations){
+    const discount = toNumber(gamma, 0.9);
+    const totalIterations = Math.max(1, Math.floor(toNumber(iterations, 1)));
+    let currentValues = initializeValues(model, values);
+    let stable = true;
+
+    for(let i = 0; i < totalIterations; i++){
+      const nextValues = {};
+      model.states.forEach((state) => {
+        const updatedValue = bellmanOptimalityValue(model, currentValues, state, discount);
+        nextValues[state.id] = updatedValue;
+      });
+
+      if(model.states.some((state) => Math.abs(toNumber(nextValues[state.id], 0) - toNumber(currentValues[state.id], 0)) > 1e-12)){
+        stable = false;
+      }
+
+      currentValues = nextValues;
+    }
+
+    return { values: currentValues, policy: {}, stable };
   }
 
   global.MDPValueIteration = {
     buildModel,
     initializeValues,
     reconcilePolicy,
-    policyEvaluationStep,
-    policyEvaluation,
-    policyImprovementStep,
+    bellmanOptimalityValue,
     valueIterationStep
   };
 })(typeof window !== 'undefined' ? window : globalThis);
