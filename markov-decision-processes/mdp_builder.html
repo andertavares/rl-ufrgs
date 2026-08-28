@@ -420,6 +420,14 @@ function executeValueIterationStep(iterations = 1){
   render();
 }
 
+function resetValueIteration(){
+  const model = buildCurrentModel();
+  mdpValues = solverAPI().resetValues(model);
+  mdpPolicy = {};
+  mdpStatusMessage = 'Valores da iteração de valor reiniciados.';
+  render();
+}
+
 // ---------- HISTÓRICO (UNDO) ----------
 function snapshot(){
   return JSON.stringify({ states, actions, nextStateId, nextActionId, selection, formOpen });
@@ -1748,6 +1756,12 @@ function buildValueIterationPanel(){
   valueNBtn.textContent = `${mdpEvaluationSteps} passos`;
   valueNBtn.onclick = () => executeValueIterationStep(mdpEvaluationSteps);
   buttons.appendChild(valueNBtn);
+
+  const resetValuesBtn = document.createElement('button');
+  resetValuesBtn.type = 'button';
+  resetValuesBtn.textContent = 'Reiniciar valores';
+  resetValuesBtn.onclick = () => resetValueIteration();
+  buttons.appendChild(resetValuesBtn);
 
   nInput.onchange = () => {
     const parsed = Number(nInput.value);

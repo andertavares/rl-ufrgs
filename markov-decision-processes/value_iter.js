@@ -80,6 +80,17 @@
     return values;
   }
 
+  function resetValues(model, defaultValue = 0){
+    const values = {};
+    const fallback = toNumber(defaultValue, 0);
+
+    (Array.isArray(model && model.states) ? model.states : []).forEach((state) => {
+      values[state.id] = fallback;
+    });
+
+    return values;
+  }
+
   function reconcilePolicy(model, policy){
     const next = {};
     const current = policy && typeof policy === 'object' ? policy : {};
@@ -186,6 +197,7 @@
   global.MDPValueIteration = {
     buildModel,
     initializeValues,
+    resetValues,
     reconcilePolicy,
     bellmanOptimalityValue,
     valueIterationStep
