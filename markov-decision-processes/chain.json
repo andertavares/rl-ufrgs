@@ -5,7 +5,7 @@
       "name": "s1",
       "x": 243,
       "y": 207.78125,
-      "reward": -3,
+      "reward": 0,
       "terminal": false,
       "color": "#ffffff",
       "anchors": [
@@ -48,7 +48,7 @@
       "name": "s2",
       "x": 387,
       "y": 125.78125,
-      "reward": -1,
+      "reward": 0,
       "terminal": false,
       "color": "#ffffff",
       "anchors": [
@@ -134,7 +134,7 @@
       "name": "s4",
       "x": 491,
       "y": 194.78125,
-      "reward": -2,
+      "reward": 0,
       "terminal": false,
       "color": "#ffffff",
       "anchors": [
